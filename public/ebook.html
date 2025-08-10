@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Détail Ebook</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+</head>
+<body>
+  <main class="container">
+    <a href="/">← Retour</a>
+    <article id="content"></article>
+  </main>
+
+  <script>
+    async function init() {
+      const params = new URLSearchParams(location.search);
+      const id = params.get('id');
+      const res = await fetch(`/api/ebooks/${id}`);
+      const book = await res.json();
+      const el = document.getElementById('content');
+      el.innerHTML = `
+        <h1>${book.title}</h1>
+        <p><strong>Auteur :</strong> ${book.author}</p>
+        <img src="${book.cover_path || ''}" alt="Couverture" style="max-width:300px;max-height:420px;object-fit:cover"/>
+        <p>${book.description || ''}</p>
+        <p><strong>Langue :</strong> ${book.language} • <strong>Catégories :</strong> ${book.categories || '-'}</p>
+        <p><strong>Prix :</strong> ${((book.price_cents||0)/100).toFixed(2)} </p>
+        <p><a href="${book.pdf_path}" download>Télécharger (gratuit pour l'instant)</a></p>
+      `;
+    }
+    init();
+  </script>
+</body>
+</html>

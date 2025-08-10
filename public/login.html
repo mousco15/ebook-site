@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Connexion Admin</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+</head>
+<body>
+  <main class="container">
+    <h1>🔒 Connexion Administrateur</h1>
+    <form id="loginForm">
+      <input name="email" type="email" placeholder="Email" value="admin@example.com" required />
+      <input name="password" type="password" placeholder="Mot de passe" value="admin123" required />
+      <button type="submit">Se connecter</button>
+    </form>
+    <p><a href="/">← Retour à la boutique</a></p>
+  </main>
+  <script>
+    const form = document.getElementById('loginForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form));
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) location.href = '/admin.html';
+      else alert('Identifiants incorrects');
+    });
+  </script>
+</body>
+</html>
