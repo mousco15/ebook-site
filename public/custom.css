@@ -105,5 +105,12 @@ footer {
     }
     h1 {
         font-size: 1.5rem;
-    }
+    }body {
+    background-image: url('A_geometric_digital_illustration.png');
+    background-size: cover; /* couvre toute la page */
+    background-position: center; /* centré */
+    background-attachment: fixed; /* reste fixe même quand on défile */
+    background-repeat: no-repeat; /* pas de répétition */
+}
+
 }
