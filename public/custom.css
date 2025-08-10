@@ -110,15 +110,18 @@ footer {
     background-size: cover; /* couvre toute la page */
     background-position: center; /* centré */
     background-attachment: fixed; /* reste fixe même quand on défile *//* === Fond géométrique global (override) === */
+body{/* === Fond géométrique global (override) === */
 body{
   font-family: 'Inter', sans-serif;
   background:
     linear-gradient(180deg, rgba(255,255,255,.90), rgba(255,255,255,.90)),
-    url("/assets/bg-geo.jpg") center / cover no-repeat fixed;
+    url("/assets/bg-geo.png") center / cover no-repeat fixed;
   margin:0;
   padding:0;
   color:#333;
 }
+
+  
 
     background-repeat: no-repeat; /* pas de répétition */
 }
