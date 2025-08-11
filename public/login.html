@@ -1,45 +1,46 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
   <title>Connexion Administrateur</title>
-  <link rel="stylesheet" href="/custom.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/custom.css?v=3">
 </head>
-<body>
+<body class="page-login">
   <main class="container">
     <h1>🔒 Connexion Administrateur</h1>
 
-    <form id="loginForm">
-      <input id="email" type="email" placeholder="Email" required />
-      <input id="password" type="password" placeholder="Mot de passe" required />
-      <button type="submit">Se connecter</button>
+    <form id="loginForm" class="form-card">
+      <div class="row">
+        <input id="email" type="email" placeholder="Email" required>
+        <input id="password" type="password" placeholder="Mot de passe" required>
+      </div>
+      <button type="submit" class="btn-primary">Se connecter</button>
     </form>
 
     <p><a href="/index.html">← Retour à la boutique</a></p>
   </main>
 
-  <!-- TOUT le JavaScript est DANS cette balise <script> (et uniquement ici) -->
   <script>
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value.trim();
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
 
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',                // ← envoie le cookie de session
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await res.json();
-      if (data.ok) {
-        location.href = '/admin.html';
-      } else {
-        alert('Identifiants incorrects');
-      }
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',                          // IMPORTANT
+      body: JSON.stringify({ email, password })
     });
+
+    const data = await res.json();
+    if (data.ok) {
+      location.href = '/admin.html';
+    } else {
+      alert('Identifiants incorrects');
+    }
+  });
   </script>
 </body>
 </html>
