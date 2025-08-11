@@ -30,11 +30,13 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'change-me',
   resave: false,
   saveUninitialized: false,
+  proxy: true, // IMPORTANT derrière proxy pour les cookies "secure"
   cookie: {
     httpOnly: true,
-    // Mode compatible (TEST). Quand tout marche, passe en { sameSite: 'none', secure: true }
+    // MODE TEST compatible partout : quand tout marche, passe à { sameSite:'none', secure:true }
     sameSite: 'lax',
     secure: false,
+    path: '/',                // cookie valable sur tout le site
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
   }
 }));
@@ -96,8 +98,18 @@ app.get('/api/me', (req, res) => {
 
 app.post('/api/logout', (req, res) => {
   req.session.destroy(() => {
-    res.clearCookie('sid');
+    res.clearCookie('sid', { path: '/' });
     return res.json({ ok: true });
+  });
+});
+
+// ---- DEBUG TEMP (retire-le quand tout marche) ----
+app.get('/api/debug-session', (req, res) => {
+  res.json({
+    gotCookieHeader: !!req.headers.cookie,
+    cookieHeader: req.headers.cookie || null,
+    sessionID: req.sessionID || null,
+    sessionUser: req.session?.user || null
   });
 });
 
