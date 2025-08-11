@@ -21,6 +21,24 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ---------- Body parsers ----------
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+// Dites à Express qu'on est derrière un proxy (Render)
+app.set('trust proxy', 1);
+
+// Détermine si on est en prod (Render définit RENDER=true)
+const isProd = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+
+// Session (utilise ta variable SESSION_SECRET depuis Render > Environment)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    sameSite: 'lax',   // important derrière proxy
+    secure: isProd,    // true en prod HTTPS, false en local
+    httpOnly: true
+  }
+}));
+
 
 // ---------- Sessions ----------
 app.use(session({
