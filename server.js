@@ -1,4 +1,5 @@
-// server.js - ES Modules + Supabase Storage (en-tête propre)
+// server.js — en-tête propre + session + auth
+
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,7 +8,7 @@ import sqlite3 from 'sqlite3';
 import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
 
-// Helpers de chemin
+// Helpers chemin
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -20,111 +21,74 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// ------- CONFIG SESSION (à garder UNE seule fois) -------
-app.set('trust proxy', 1);  // Render est derrière un proxy
+// Render est derrière un proxy
+app.set('trust proxy', 1);
 
+// ---------- SESSION (UNE seule fois) ----------
 const isProd = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
 
 app.use(session({
   name: 'sid',
-  secret: process.env.SESSION_SECRET || 'change-me', // défini dans Render > Environment
+  secret: process.env.SESSION_SECRET || 'change-me', // définis SESSION_SECRET dans Render > Environment
   resave: false,
   saveUninitialized: false,
   cookie: {
-  httpOnly: true,
-  sameSite: 'none',
-  secure: true,
-  maxAge: 7 * 24 * 60 * 60 * 1000
-}
-}));
-// ------- FIN CONFIG SESSION -------
-
-// (Optionnel) passe en mode verbeux pour sqlite
-sqlite3.verbose();
-// ---------- BDD SQLite ----------
-sqlite3.verbose();
-const dbFile = path.join(__dirname, 'data.sqlite');
-const db = new sqlite3.Database(dbFile);
-
-// Création table si besoin
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS ebooks (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL,
-      author TEXT NOT NULL,
-      description TEXT DEFAULT '',
-      language TEXT DEFAULT 'fr',
-      price_cents INTEGER DEFAULT 0,
-      categories TEXT DEFAULT '',
-      cover_path TEXT,
-      pdf_path TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-});
-
-// ---------- Auth simple (admin) ----------
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
-
-function requireAuth(req, res, next) {
-  if (req.session?.user === ADMIN_EMAIL) return next();
-  return res.status(401).json({ error: 'Non autorisé' });
-}
-
-app.post('/api/login', (req, res) => {
-  const { email, password } = req.body || {};
-  if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-    req.session.user = ADMIN_EMAIL;
-    return res.json({ ok: true });
+    httpOnly: true,
+    // Version compatible partout (test) :
+    sameSite: 'lax',
+    secure: false,
+    maxAge: 7 * 24 * 60 * 60 * 1000
   }
-  return res.status(401).json({ error: 'Identifiants invalides' });
-});
+}));
+// ---------- FIN SESSION ----------
 
-app.post('/api/logout', (req, res) => {
-  req.session.destroy(() => res.json({ ok: true }));
+// (optionnel) logs verbeux sqlite
+sqlite3.verbose();
+
+// ---------- AUTH ----------
+app.post('/api/login', async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ ok: false, error: 'missing' });
+    }
+
+    const ok =
+      email === process.env.ADMIN_EMAIL &&
+      password === process.env.ADMIN_PASSWORD;
+
+    if (!ok) {
+      return res.status(401).json({ ok: false, error: 'invalid' });
+    }
+
+    // enregistre l'utilisateur en session
+    req.session.user = { email };
+    req.session.save(err => {
+      if (err) {
+        console.error('session.save error:', err);
+        return res.status(500).json({ ok: false, error: 'session' });
+      }
+      console.log('LOGIN OK for', email);
+      return res.json({ ok: true });
+    });
+  } catch (e) {
+    console.error('login error:', e);
+    return res.status(500).json({ ok: false, error: 'server' });
+  }
 });
 
 app.get('/api/me', (req, res) => {
-  res.json({ user: req.session?.user || null });
+  const user = req.session?.user?.email || null;
+  return res.json({ user });
 });
 
-// ---------- Supabase Storage ----------
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
-const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'ebook-site2';
-
-// Uploads en MÉMOIRE (pas sur disque Render)
-const storage = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 } // 50 Mo
+app.post('/api/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie('sid');
+    return res.json({ ok: true });
+  });
 });
-const upload = multer({ storage });
-
-// Helper: upload vers Supabase et retourne l’URL publique
-async function uploadToSupabase(file, destPath) {
-  const { error } = await supabase
-    .storage
-    .from(SUPABASE_BUCKET)
-    .upload(destPath, file.buffer, {
-      contentType: file.mimetype || 'application/octet-stream',
-      cacheControl: '31536000',
-      upsert: false
-    });
-
-  if (error) throw error;
-
-  const { data: pub } = supabase
-    .storage
-    .from(SUPABASE_BUCKET)
-    .getPublicUrl(destPath);
-
-  return pub.publicUrl; // URL finale publique
-}
-
+// --- FIN AUTH ---
 // ---------- API livres ----------
 
 // Liste / recherche
