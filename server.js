@@ -1,4 +1,4 @@
-// server.js — version Supabase Storage (ES Modules)
+// server.js - ES Modules + Supabase Storage (en-tête propre)
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,43 +7,40 @@ import sqlite3 from 'sqlite3';
 import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
 
-// ---------- Helpers de chemin ----------
+// Helpers de chemin
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ---------- App ----------
+// App
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ---------- Static (dossier public) ----------
+// Static + body parsers
 app.use(express.static(path.join(__dirname, 'public')));
-
-// ---------- Body parsers ----------
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-// Dites à Express qu'on est derrière un proxy (Render)
-app.set('trust proxy', 1);
 
-// Détermine si on est en prod (Render définit RENDER=true)
+// ------- CONFIG SESSION (à garder UNE seule fois) -------
+app.set('trust proxy', 1);  // Render est derrière un proxy
+
 const isProd = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
 
-// Session (utilise ta variable SESSION_SECRET depuis Render > Environment)
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
+  name: 'sid',
+  secret: process.env.SESSION_SECRET || 'change-me', // défini dans Render > Environment
   resave: false,
   saveUninitialized: false,
   cookie: {
-    sameSite: 'lax',   // important derrière proxy
-    secure: isProd,    // true en prod HTTPS, false en local
-    httpOnly: true
+    httpOnly: true,
+    sameSite: isProd ? 'none' : 'lax',
+    secure: isProd,
+    maxAge: 7 * 24 * 60 * 60 * 1000
   }
 }));
+// ------- FIN CONFIG SESSION -------
 
-
-// ---------- Sessions ----------
-app.use(session({
-
-
+// (Optionnel) passe en mode verbeux pour sqlite
+sqlite3.verbose();
 // ---------- BDD SQLite ----------
 sqlite3.verbose();
 const dbFile = path.join(__dirname, 'data.sqlite');
