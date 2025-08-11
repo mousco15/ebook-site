@@ -9,6 +9,36 @@
 <link rel="stylesheet" href="/custom.css?v=3">
 </head>
 <body>
+  <script><script>
+  // --- Patch global: ajoute credentials:'include' à toutes les requêtes fetch ---
+  (function () {
+    const origFetch = window.fetch;
+    window.fetch = function (url, options) {
+      options = options || {};
+      // Si l'appelant n'a pas précisé credentials, on force 'include'
+      if (!options.credentials) options.credentials = 'include';
+      return origFetch(url, options);
+    };
+  })();
+</script>
+  <script>
+  // Vérifie la session dès le chargement de la page admin
+  (async () => {
+    try {
+      const me = await fetch('/api/me', { credentials: 'include' }).then(r => r.json());
+      if (!me.user) {
+        // Pas connecté → on renvoie vers la page de login
+        window.location.href = '/login.html';
+        return;
+      }
+      // Ici, tu peux continuer l'initialisation de l'admin (chargement de la liste, etc.)
+    } catch (e) {
+      console.error('Erreur vérification session:', e);
+      window.location.href = '/login.html';
+    }
+  })();
+</script>
+
   <main class="container">
     <h1>➕ Ajouter / Gérer les Ebooks</h1>
     <p id="who"></p>
