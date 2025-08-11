@@ -13,5 +13,6 @@
     "multer": "^1.4.5-lts.1",
     "sqlite3": "^5.1.7",
     "express-session": "^1.17.3"
+    "@supabase/supabase-js": "^2.45.0"
   }
 }
