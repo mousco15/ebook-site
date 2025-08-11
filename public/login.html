@@ -19,18 +19,17 @@
     <p><a href="/index.html">← Retour à la boutique</a></p>
   </main>
 
+  <!-- TOUT le JavaScript est DANS cette balise <script> (et uniquement ici) -->
   <script>
-    // Empêche d'afficher du JS en texte : tout est dans <script> ... </script>
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value.trim();
 
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // IMPORTANT : envoie le cookie de session
+        credentials: 'include',                // ← envoie le cookie de session
         body: JSON.stringify({ email, password })
       });
 
