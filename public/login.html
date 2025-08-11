@@ -1,54 +1,45 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Connexion Admin</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Connexion Administrateur</title>
+  <link rel="stylesheet" href="/custom.css" />
 </head>
 <body>
   <main class="container">
     <h1>🔒 Connexion Administrateur</h1>
+
     <form id="loginForm">
-      <input name="email" type="email" placeholder="Email" value="admin@example.com" required />
-      <input name="password" type="password" placeholder="Mot de passe" value="admin123" required />
+      <input id="email" type="email" placeholder="Email" required />
+      <input id="password" type="password" placeholder="Mot de passe" required />
       <button type="submit">Se connecter</button>
     </form>
-    <p><a href="/">← Retour à la boutique</a></p>
+
+    <p><a href="/index.html">← Retour à la boutique</a></p>
   </main>
+
   <script>
-    const form = document.getElementById('loginForm');
-    form.addEventListener('submit', async (e) => {
+    // Empêche d'afficher du JS en texte : tout est dans <script> ... </script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const data = Object.fromEntries(new FormData(form));
-      <script>
-  async function doLogin(e) {
-    e.preventDefault();
-    const email = document.querySelector('#email').value.trim();
-    const password = document.querySelector('#password').value.trim();
 
-    const resp = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',     // <= TRÈS IMPORTANT
-      body: JSON.stringify({ email, password })
-    });
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
 
-    const data = await resp.json();
-    if (data.ok) {
-      window.location.href = '/admin.html';
-    } else {
-      alert('Identifiants invalides');
-    }
-  }
-</script>
-
+      const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        credentials: 'include', // IMPORTANT : envoie le cookie de session
+        body: JSON.stringify({ email, password })
       });
-      if (res.ok) location.href = '/admin.html';
-      else alert('Identifiants incorrects');
+
+      const data = await res.json();
+      if (data.ok) {
+        location.href = '/admin.html';
+      } else {
+        alert('Identifiants incorrects');
+      }
     });
   </script>
 </body>
