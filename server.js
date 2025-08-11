@@ -42,11 +42,7 @@ app.use(session({
 
 // ---------- Sessions ----------
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { sameSite: 'lax' }
-}));
+
 
 // ---------- BDD SQLite ----------
 sqlite3.verbose();
