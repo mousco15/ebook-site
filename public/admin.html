@@ -1,155 +1,60 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin - Ebooks</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/custom.css?v=3">
+  <meta charset="utf-8">
+  <title>Admin • Ebooks</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/custom.css?v=3">
 </head>
-<body>
-  <script><script>
-  // --- Patch global: ajoute credentials:'include' à toutes les requêtes fetch ---
+<body class="page-admin">
+
+  <!-- Force credentials=include sur tous les fetch -->
+  <script>
   (function () {
-    const origFetch = window.fetch;
-    window.fetch = function (url, options) {
-      options = options || {};
-      // Si l'appelant n'a pas précisé credentials, on force 'include'
-      if (!options.credentials) options.credentials = 'include';
-      return origFetch(url, options);
+    const orig = window.fetch;
+    window.fetch = function (url, opts = {}) {
+      if (!opts.credentials) opts.credentials = 'include';
+      return orig(url, opts);
     };
   })();
-</script>
+  </script>
+
+  <!-- Vérifie la session au chargement -->
   <script>
-  // Vérifie la session dès le chargement de la page admin
   (async () => {
     try {
       const me = await fetch('/api/me', { credentials: 'include' }).then(r => r.json());
       if (!me.user) {
-        // Pas connecté → on renvoie vers la page de login
-        window.location.href = '/login.html';
+        location.href = '/login.html';
         return;
       }
-      // Ici, tu peux continuer l'initialisation de l'admin (chargement de la liste, etc.)
+      // Tu peux afficher l'email ici si tu veux
+      document.getElementById('who').textContent = me.user;
     } catch (e) {
-      console.error('Erreur vérification session:', e);
-      window.location.href = '/login.html';
+      location.href = '/login.html';
     }
   })();
-</script>
+  </script>
 
   <main class="container">
-    <h1>➕ Ajouter / Gérer les Ebooks</h1>
-    <p id="who"></p>
-    <p><button id="logoutBtn">Se déconnecter</button></p>
-    <form id="form" enctype="multipart/form-data">
-      <div class="grid">
-        <input name="title" placeholder="Titre *" required />
-        <input name="author" placeholder="Auteur *" required />
+    <header class="admin-header">
+      <h1>➕ Ajouter / Gérer les Ebooks</h1>
+      <div class="admin-meta">
+        Connecté en tant que <strong id="who">…</strong>
+        <button id="logoutBtn" class="btn-outline">Se déconnecter</button>
       </div>
-      <textarea name="description" placeholder="Description"></textarea>
-      <div class="grid">
-        <input name="language" placeholder="Langue (fr/en)" value="fr"/>
-        <input name="categories" placeholder="Catégories (séparées par des virgules)"/>
-        <input name="price_cents" type="number" placeholder="Prix (centimes) ex: 990"/>
-      </div>
-      <div class="grid">
-        <label>Couverture (JPG/PNG)<input type="file" name="cover" accept="image/*"></label>
-        <label>Fichier PDF *<input type="file" name="pdf" accept="application/pdf" required></label>
-      </div>
-      <button type="submit">Enregistrer</button>
-    </form>
+    </header>
 
-    <hr/>
-    <h2>📚 Catalogue</h2>
-    <div id="list"></div>
+    <!-- … ici garde ton formulaire et tes listes existants … -->
+    <!-- IMPORTANT : ne change pas les attributs name="cover" et name="pdf" sur les <input type="file"> -->
+
   </main>
 
   <script>
-    const form = document.getElementById('form');
-
-    async function me() {
-      const res = await fetch('/api/me');
-      const u = await res.json();
-      if (!u.isAdmin) location.href = '/login.html';
-      document.getElementById('who').textContent = 'Connecté en tant que ' + (u.email||'admin');
-    }
-    me();
-
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await fetch('/api/logout', { method: 'POST' });
-      location.href = '/login.html';
-    });
-
-    async function load() {
-      const formData = new FormData(document.getElementById('ebookForm'));
-const resp = await fetch('/api/ebooks', {
-  method: 'POST',
-  body: formData,            // NE PAS mettre 'Content-Type' quand on envoie du FormData
-  credentials: 'include'     // <= IMPORTANT pour envoyer le cookie
-});
-const data = await resp.json();
-if (data.ok) {
-  alert('Ebook ajouté !');
-  // ... ton code de rafraîchissement de liste ...
-} else {
-  alert('Erreur: ' + (data.error || 'inconnue'));
-}
-
-      const items = await res.json();
-      const list = document.getElementById('list');
-      list.innerHTML = items.map(b => `
-        <article>
-          <h3>${b.title} <small>— ${b.author}</small></h3>
-          <p>${b.description || ''}</p>
-          <p><strong>Langue:</strong> ${b.language} • <strong>Catégories:</strong> ${b.categories || '-'} • <strong>Prix:</strong> ${(b.price_cents||0)/100}</p>
-          <p>
-            <a href="/ebook.html?id=${b.id}">Voir</a> · <a href="#" onclick="edit(${b.id});return false;">Modifier</a> ·
-            <a href="#" onclick="del(${b.id});return false;">Supprimer</a>
-          </p>
-        </article>
-      `).join('');
-    }
-
-    async function del(id) {
-      if (!confirm('Supprimer cet ebook ?')) return;
-      const res = await fetch('/api/ebooks/' + id, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.error) alert(data.error); else load();
-    }
-
-    async function edit(id) {
-      const res = await fetch('/api/ebooks/' + id);
-      const b = await res.json();
-      // Fill the form for edit
-      for (const [k,v] of Object.entries({
-        title:b.title, author:b.author, description:b.description, language:b.language, categories:b.categories, price_cents:b.price_cents
-      })) {
-        const el = form.querySelector(`[name="${k}"]`);
-        if (el) el.value = v || '';
-      }
-      form.dataset.editId = id;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    // Handle create vs update
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const fd = new FormData(form);
-      const id = form.dataset.editId;
-      const method = id ? 'PUT' : 'POST';
-      const url = id ? '/api/ebooks/' + id : '/api/ebooks';
-      const res = await fetch(url, { method, body: fd });
-      const data = await res.json();
-      if (data.error) alert(data.error);
-      else {
-        alert(id ? 'Ebook modifié !' : 'Ebook ajouté !');
-        form.reset(); delete form.dataset.editId; load();
-      }
-    });
-
-    load();
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await fetch('/api/logout', { method:'POST', credentials:'include' });
+    location.href = '/login.html';
+  });
   </script>
 </body>
 </html>
