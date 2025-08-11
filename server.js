@@ -1,4 +1,4 @@
-// server.js — en-tête propre + session + auth
+// server.js — version complète (ES Modules) avec Supabase Storage + Session + Auth
 
 import express from 'express';
 import path from 'path';
@@ -8,67 +8,79 @@ import sqlite3 from 'sqlite3';
 import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
 
-// Helpers chemin
+// ---------- Helpers chemin ----------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// App
+// ---------- App ----------
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Static + body parsers
+// ---------- Static & body parsers ----------
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Render est derrière un proxy
-app.set('trust proxy', 1);
-
-// ---------- SESSION (UNE seule fois) ----------
+// ---------- Sessions (une seule fois) ----------
+app.set('trust proxy', 1); // Render est derrière un proxy
 const isProd = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
 
 app.use(session({
   name: 'sid',
-  secret: process.env.SESSION_SECRET || 'change-me', // définis SESSION_SECRET dans Render > Environment
+  secret: process.env.SESSION_SECRET || 'change-me',
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    // Version compatible partout (test) :
+    // Mode compatible (TEST). Quand tout marche, passe en { sameSite: 'none', secure: true }
     sameSite: 'lax',
     secure: false,
-    maxAge: 7 * 24 * 60 * 60 * 1000
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
   }
 }));
-// ---------- FIN SESSION ----------
 
-// (optionnel) logs verbeux sqlite
+// ---------- BDD SQLite ----------
 sqlite3.verbose();
+const dbFile = path.join(__dirname, 'data.sqlite');
+const db = new sqlite3.Database(dbFile);
 
-// ---------- AUTH ----------
+db.serialize(() => {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ebooks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      author TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      language TEXT DEFAULT 'fr',
+      price_cents INTEGER DEFAULT 0,
+      categories TEXT DEFAULT '',
+      cover_path TEXT,
+      pdf_path TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+});
+
+// ---------- Auth minimal ----------
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password';
+
+function requireAuth(req, res, next) {
+  if (req.session?.user?.email === ADMIN_EMAIL) return next();
+  return res.status(401).json({ error: 'Non autorisé' });
+}
+
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    if (!email || !password) {
-      return res.status(400).json({ ok: false, error: 'missing' });
-    }
+    if (!email || !password) return res.status(400).json({ ok: false, error: 'missing' });
 
-    const ok =
-      email === process.env.ADMIN_EMAIL &&
-      password === process.env.ADMIN_PASSWORD;
+    const ok = (email === ADMIN_EMAIL && password === ADMIN_PASSWORD);
+    if (!ok) return res.status(401).json({ ok: false, error: 'invalid' });
 
-    if (!ok) {
-      return res.status(401).json({ ok: false, error: 'invalid' });
-    }
-
-    // enregistre l'utilisateur en session
     req.session.user = { email };
     req.session.save(err => {
-      if (err) {
-        console.error('session.save error:', err);
-        return res.status(500).json({ ok: false, error: 'session' });
-      }
-      console.log('LOGIN OK for', email);
+      if (err) return res.status(500).json({ ok: false, error: 'session' });
       return res.json({ ok: true });
     });
   } catch (e) {
@@ -88,24 +100,55 @@ app.post('/api/logout', (req, res) => {
     return res.json({ ok: true });
   });
 });
-// --- FIN AUTH ---
-// ---------- API livres ----------
+
+// ---------- Supabase Storage ----------
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'ebook-site2';
+
+// Multer en mémoire (pas d’écriture disque Render)
+const storage = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 } // 50 Mo
+});
+const upload = multer({ storage });
+
+async function uploadToSupabase(file, destPath) {
+  const { error } = await supabase
+    .storage
+    .from(SUPABASE_BUCKET)
+    .upload(destPath, file.buffer, {
+      contentType: file.mimetype || 'application/octet-stream',
+      cacheControl: '31536000',
+      upsert: false
+    });
+  if (error) throw error;
+
+  const { data: pub } = supabase
+    .storage
+    .from(SUPABASE_BUCKET)
+    .getPublicUrl(destPath);
+
+  return pub.publicUrl;
+}
+
+// ---------- API ebooks ----------
 
 // Liste / recherche
 app.get('/api/ebooks', (req, res) => {
   const q = (req.query.q || '').trim();
-  const sqlBase = `SELECT * FROM ebooks`;
+  const base = `SELECT * FROM ebooks`;
   if (!q) {
-    return db.all(sqlBase + ` ORDER BY id DESC`, [], (err, rows) => {
+    return db.all(base + ` ORDER BY id DESC`, [], (err, rows) => {
       if (err) return res.status(500).json({ error: 'DB error' });
       res.json(rows);
     });
   }
   const like = `%${q}%`;
   db.all(
-    sqlBase +
-      ` WHERE title LIKE ? OR author LIKE ? OR description LIKE ? OR categories LIKE ?
-        ORDER BY id DESC`,
+    base + ` WHERE title LIKE ? OR author LIKE ? OR description LIKE ? OR categories LIKE ? ORDER BY id DESC`,
     [like, like, like, like],
     (err, rows) => {
       if (err) return res.status(500).json({ error: 'DB error' });
@@ -122,7 +165,6 @@ app.post(
   async (req, res) => {
     try {
       const { title, author, description, language, price_cents, categories } = req.body;
-
       const coverFile = req.files?.cover?.[0];
       const pdfFile = req.files?.pdf?.[0];
 
@@ -130,7 +172,7 @@ app.post(
         return res.status(400).json({ error: 'Titre, auteur et fichier PDF obligatoires.' });
       }
 
-      const sanitize = (name) => name.replace(/[^\w\.-]/g, '_');
+      const sanitize = (n) => n.replace(/[^\w\.-]/g, '_');
       const now = Date.now();
       let coverUrl = null;
       let pdfUrl = null;
@@ -159,21 +201,18 @@ app.post(
         coverUrl,
         pdfUrl,
         function (err) {
-          if (err) {
-            console.error('DB error:', err);
-            return res.status(500).json({ error: 'DB error' });
-          }
-          return res.json({ ok: true, id: this.lastID });
+          if (err) return res.status(500).json({ error: 'DB error' });
+          res.json({ ok: true, id: this.lastID });
         }
       );
     } catch (e) {
       console.error('Upload error:', e);
-      return res.status(500).json({ error: 'Upload failed' });
+      res.status(500).json({ error: 'Upload failed' });
     }
   }
 );
 
-// Edition (ADMIN) — facultatif si tu n’en as pas besoin
+// Edition (ADMIN)
 app.put(
   '/api/ebooks/:id',
   requireAuth,
@@ -185,6 +224,7 @@ app.put(
       const coverFile = req.files?.cover?.[0];
       const pdfFile = req.files?.pdf?.[0];
 
+      const sanitize = (n) => n.replace(/[^\w\.-]/g, '_');
       const fields = [];
       const params = [];
 
@@ -195,7 +235,6 @@ app.put(
       if (price_cents !== undefined) { fields.push('price_cents=?'); params.push(Number(price_cents || 0)); }
       if (categories !== undefined) { fields.push('categories=?'); params.push(categories); }
 
-      const sanitize = (name) => name.replace(/[^\w\.-]/g, '_');
       if (coverFile) {
         const dest = `covers/${Date.now()}-${sanitize(coverFile.originalname)}`;
         const url = await uploadToSupabase(coverFile, dest);
@@ -231,12 +270,12 @@ app.delete('/api/ebooks/:id', requireAuth, (req, res) => {
   });
 });
 
-// ---------- Pages (si accédées directement) ----------
+// ---------- Pages (accès direct) ----------
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 // ---------- Lancement ----------
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
