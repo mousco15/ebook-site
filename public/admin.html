@@ -1,99 +1,298 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <title>Admin • Ebooks</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="/custom.css?v=6">
-</head>
-<body class="page-admin">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — Ebooks</title>
 
-  <!-- Force credentials=include sur tous les fetch -->
-  <script>
-  (function () {
-    const orig = window.fetch;
-    window.fetch = function (url, opts = {}) {
-      if (!opts.credentials) opts.credentials = 'include';
-      return orig(url, opts);
-    };
-  })();
-  </script>
+  <!-- Styles globaux puis personnalisations (custom.css contient le fond géométrique) -->
+  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="custom.css?v=5">
 
-  <!-- Vérifie la session au chargement -->
-  <script>
-  (async () => {
-    try {
-      const me = await fetch('/api/me', { credentials: 'include' }).then(r => r.json());
-      if (!me.user) {
-        location.href = '/login.html';
-        return;
-      }
-      // Tu peux afficher l'email ici si tu veux
-      document.getElementById('who').textContent = me.user;
-    } catch (e) {
-      location.href = '/login.html';
+  <style>
+    /* Renforts de mise en page pour mobile */
+    :root { --gap: 16px; }
+    body { margin:0; }
+    .container { max-width: 980px; margin: 0 auto; padding: var(--gap); }
+    header.admin-top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: var(--gap);
+      padding: calc(var(--gap)*1.25) var(--gap) 0;
     }
-  })();
-  </script>
+    header.admin-top h1 {
+      margin: 0;
+      line-height: 1.05;
+      font-size: clamp(26px, 5vw, 46px);
+    }
+    .who {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-self: end;
+      flex-wrap: wrap;
+      font-weight: 600;
+    }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 10px 16px; border-radius: 10px; font-weight: 700;
+      border: 2px solid #4a90e2; color: #1a5fb4; background: rgba(255,255,255,.75);
+      cursor: pointer; text-decoration: none;
+    }
+    .btn:hover { filter: brightness(0.95); }
 
+    main { padding: var(--gap); }
+    .cards { display: grid; gap: var(--gap); grid-template-columns: 1fr; }
+    @media (min-width: 820px) { .cards { grid-template-columns: 1fr 1fr; } }
+
+    .card {
+      background: rgba(255,255,255,.85);
+      border: 1px solid rgba(0,0,0,.06);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.06);
+      backdrop-filter: blur(3px);
+    }
+    .card h2 { margin: 0 0 10px; font-size: 18px; }
+    form .row { display: grid; gap: 10px; grid-template-columns: 1fr; margin-bottom: 10px; }
+    @media (min-width: 620px) { form .row.two { grid-template-columns: 1fr 1fr; } }
+    label { font-size: 13px; font-weight: 600; }
+    input[type="text"], input[type="number"], textarea, select, input[type="file"] {
+      width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(0,0,0,.15);
+      background: #fff;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid rgba(0,0,0,.08); }
+    .actions { display: flex; gap: 8px; }
+    .muted { color: #666; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+  <!-- EN-TÊTE -->
+  <header class="admin-top">
+    <h1>Ajouter / Gérer les Ebooks</h1>
+    <div class="who">
+      <span class="muted">Connecté en tant que</span>
+      <span id="who">—</span>
+      <button id="btnLogout" class="btn" type="button">Se déconnecter</button>
+    </div>
+  </header>
+
+  <!-- CONTENU -->
   <main class="container">
-    <header class="admin-header">
-    <header class="admin-top">
-  <h1 class="admin-title">
-    <span class="icon" aria-hidden="true">
-      <!-- Icône cahier en SVG -->
-      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="4" y="3" width="14" height="18" rx="2" ry="2" fill="#1e73be" opacity="0.12"/>
-        <rect x="6" y="5" width="10" height="14" rx="1.2" fill="#1e73be" opacity="0.18"/>
-        <path d="M18 3v18" stroke="#1e73be" stroke-width="2"/>
-        <circle cx="18" cy="7" r="0.9" fill="#1e73be"/>
-        <circle cx="18" cy="11" r="0.9" fill="#1e73be"/>
-        <circle cx="18" cy="15" r="0.9" fill="#1e73be"/>
-        <path d="M8 8h6M8 11h6M8 14h6" stroke="#1e73be" stroke-width="1.6" stroke-linecap="round"/>
-      </svg>
-    </span>
-    Ajouter / Gérer les Ebooks
-  </h1>
+    <div class="cards">
+      <!-- AJOUT / ÉDITION -->
+      <section class="card">
+        <h2>Ajouter un ebook</h2>
+        <form id="addForm" enctype="multipart/form-data">
+          <div class="row two">
+            <div>
+              <label for="title">Titre *</label>
+              <input id="title" name="title" type="text" required />
+            </div>
+            <div>
+              <label for="author">Auteur *</label>
+              <input id="author" name="author" type="text" required />
+            </div>
+          </div>
 
-  <div class="admin-user">
-    Connecté en tant que <strong id="meEmail"></strong>
-    <button id="logoutBtn" class="btn btn-outline">Se déconnecter</button>
-  </div>
-</header>
+          <div class="row">
+            <div>
+              <label for="description">Description</label>
+              <textarea id="description" name="description" rows="3" placeholder="Résumé, points forts…"></textarea>
+            </div>
+          </div>
 
-      <div class="admin-meta">
-        Connecté en tant que <strong id="who">…</strong>
-        <button id="logoutBtn" class="btn-outline">Se déconnecter</button>
-      </div>
-    </header>
+          <div class="row two">
+            <div>
+              <label for="language">Langue</label>
+              <select id="language" name="language">
+                <option value="fr" selected>Français</option>
+                <option value="en">Anglais</option>
+              </select>
+            </div>
+            <div>
+              <label for="price_cents">Prix (centimes)</label>
+              <input id="price_cents" name="price_cents" type="number" min="0" step="1" placeholder="ex: 990" />
+            </div>
+          </div>
 
-    <!-- … ici garde ton formulaire et tes listes existants … -->
-    <!-- IMPORTANT : ne change pas les attributs name="cover" et name="pdf" sur les <input type="file"> -->
+          <div class="row">
+            <div>
+              <label for="categories">Catégories (séparées par des virgules)</label>
+              <input id="categories" name="categories" type="text" placeholder="ex: business, entrepreneuriat" />
+            </div>
+          </div>
 
+          <div class="row two">
+            <div>
+              <label for="cover">Couverture (JPG/PNG)</label>
+              <input id="cover" name="cover" type="file" accept="image/*" />
+            </div>
+            <div>
+              <label for="pdf">Fichier PDF *</label>
+              <input id="pdf" name="pdf" type="file" accept="application/pdf" required />
+            </div>
+          </div>
+
+          <div class="row">
+            <button class="btn" type="submit">Enregistrer</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- LISTE / GESTION -->
+      <section class="card">
+        <h2>Gérer les ebooks</h2>
+
+        <div class="row">
+          <input id="q" type="text" placeholder="Rechercher (titre, auteur, mots-clés…)" />
+          <button id="btnSearch" class="btn" type="button">Rechercher</button>
+        </div>
+
+        <div class="row">
+          <table id="grid">
+            <thead>
+              <tr>
+                <th>Titre</th>
+                <th>Auteur</th>
+                <th class="muted">Créé</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody><!-- rempli en JS --></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
   </main>
 
   <script>
-  document.getElementById('logoutBtn').addEventListener('click', async () => {
-    await fetch('/api/logout', { method:'POST', credentials:'include' });
-    location.href = '/login.html';
-  });
-  </script>
-  <script>
-(async () => {
-  try {
-    const me = await fetch('/api/me', { credentials: 'include' }).then(r => r.json());
-    const el = document.getElementById('meEmail');
-    if (el) el.textContent = me.user || '';
-  } catch (e) { /* ignore */ }
+    // ----------- Helpers
+    const $ = (sel, root = document) => root.querySelector(sel);
+    const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
-  const btn = document.getElementById('logoutBtn');
-  if (btn) {
-    btn.addEventListener('click', async () => {
-      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
-      location.href = '/login.html';
+    // ----------- 1) Vérifier la session au chargement
+    (async () => {
+      try {
+        const r = await fetch('/api/me', { credentials: 'include' });
+        const data = await r.json();
+        if (!data.user) {
+          location.href = '/login.html';
+          return;
+        }
+        $('#who').textContent = data.user;
+        // Charger la liste une fois authentifié
+        await loadEbooks();
+      } catch (e) {
+        console.error('Erreur /api/me', e);
+        location.href = '/login.html';
+      }
+    })();
+
+    // ----------- 2) Déconnexion
+    $('#btnLogout').addEventListener('click', async () => {
+      try {
+        await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+      } finally {
+        location.href = '/login.html';
+      }
     });
-  }
-})();
-</script>
+
+    // ----------- 3) Soumission du formulaire d’ajout
+    $('#addForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.currentTarget);
+      try {
+        const r = await fetch('/api/ebooks', {
+          method: 'POST',
+          body: fd,
+          credentials: 'include'
+        });
+        const json = await r.json();
+        if (!r.ok || !json.ok) {
+          alert('Erreur: ' + (json.error || r.status));
+          return;
+        }
+        alert('Ebook ajouté !');
+        e.currentTarget.reset();
+        await loadEbooks();
+      } catch (err) {
+        console.error(err);
+        alert("Échec de l'envoi.");
+      }
+    });
+
+    // ----------- 4) Charger et afficher les ebooks
+    async function loadEbooks(q = '') {
+      const url = q ? `/api/ebooks?q=${encodeURIComponent(q)}` : '/api/ebooks';
+      const r = await fetch(url, { credentials: 'include' });
+      const rows = await r.json();
+
+      const tbody = $('#grid tbody');
+      tbody.innerHTML = '';
+
+      if (!Array.isArray(rows) || !rows.length) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="4" class="muted">Aucun résultat.</td>`;
+        tbody.appendChild(tr);
+        return;
+      }
+
+      rows.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(row.title || '')}</td>
+          <td>${escapeHtml(row.author || '')}</td>
+          <td class="muted">${(row.created_at || '').toString().slice(0, 16)}</td>
+          <td class="actions">
+            <!-- (Édition à venir) -->
+            <button class="btn" data-del="${row.id}">Supprimer</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Wire des boutons supprimer
+      $$('[data-del]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-del');
+          if (!confirm('Supprimer cet ebook ?')) return;
+          const r = await fetch(`/api/ebooks/${id}`, {
+            method: 'DELETE',
+            credentials: 'include'
+          });
+          const json = await r.json();
+          if (!r.ok || !json.ok) {
+            alert('Suppression impossible');
+            return;
+          }
+          await loadEbooks($('#q').value.trim());
+        });
+      });
+    }
+
+    // ----------- 5) Recherche
+    $('#btnSearch').addEventListener('click', () => {
+      loadEbooks($('#q').value.trim());
+    });
+    $('#q').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        loadEbooks($('#q').value.trim());
+      }
+    });
+
+    function escapeHtml(s) {
+      return (s ?? '').toString()
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'",'&#39;');
+    }
+  </script>
 </body>
 </html>
