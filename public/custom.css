@@ -1,137 +1,188 @@
-/* Mise en page générique */
-body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-.container { max-width: 1100px; margin: 0 auto; padding: 16px; }
-
-/* Cartes/formulaires */
-.form-card { background: rgba(255,255,255,.85); padding: 16px; border-radius: 10px; backdrop-filter: blur(2px); display: inline-block; }
-.row { display: flex; gap: 12px; flex-wrap: wrap; }
-
-input[type="email"], input[type="password"], input[type="text"], input[type="number"], select, textarea {
-  width: 100%;
-  max-width: 360px;
-  font-size: 16px;      /* évite le zoom iOS */
-  padding: 10px 12px;
-  border: 1px solid #ccd3d9;
-  border-radius: 8px;
-  box-sizing: border-box;
+/* ======== Fond de page ======== */
+html, body {
+  height: 100%;
 }
-
-.btn-primary, .btn-outline {
-  font-size: 16px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  border: none;
-}
-.btn-primary { background: #1e73be; color:#fff; }
-.btn-primary:hover { filter: brightness(1.05); }
-.btn-outline { background: transparent; border:1px solid #1e73be; color:#1e73be; }
-
-.admin-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.admin-meta { display: flex; align-items: center; gap: 10px; }
-/* ===== Fond géométrique sur login & admin ===== */
-body.page-login,
-body.page-admin {
-  min-height: 100vh;
-  background-image: url("/assets/bg-geo.png");
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: #111;
+  background: url('A_geometric_digital_illustration.png') no-repeat center center fixed;
   background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
+  /* léger voile pour la lisibilité du texte */
+  position: relative;
 }
-
-/* Léger voile blanc pour améliorer la lisibilité du texte */
-body.page-login::before,
-body.page-admin::before {
+body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background: rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.65);
   pointer-events: none;
 }
 
-/* ===== Titre Admin avec icône ===== */
-.admin-title {
+/* ======== Mise en page générale ======== */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+h1, h2, h3 {
+  margin: 0 0 16px;
+  line-height: 1.2;
+}
+
+/* Titre principal (ex: Ajouter / Gérer les Ebooks) */
+.page-title {
   display: flex;
   align-items: center;
-  gap: 10px;
-  line-height: 1.1;
+  gap: 14px;
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 800;
 }
 
-.admin-title .icon {
-  width: 28px;
-  height: 28px;
-  display: inline-block;
-  vertical-align: middle;
+/* Petit pictogramme à gauche du titre (optionnel) */
+.page-title .badge {
+  display: inline-flex;
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  background: #2563eb20;
+  border: 1px solid #2563eb40;
+  justify-content: center; align-items: center;
 }
 
-@media (max-width: 480px) {
-  .form-card { width: 100%; }
-  input, select, textarea { max-width: 100%; }
+/* Bandeau d’info “Connecté en tant que …” + bouton */
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  margin: 12px 0 24px;
+  font-size: 15px;
 }
-/* S'assure que le contenu est au-dessus du fond */
-.container, main, .admin-top { position: relative; z-index: 1; }
+.topbar .me {
+  font-weight: 700;
+}
 
-/* Header admin : titre + bloc user côte à côte */
-.admin-top{
+/* ======== Formulaires ======== */
+form {
   display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 18px;
+  gap: 14px;
 }
 
-@media (max-width: 640px){
-  .admin-top{ grid-template-columns: 1fr; }
-  .admin-user{ justify-self: start; }
+label {
+  font-size: 14px;
+  color: #333;
 }
 
-.admin-title{
-  display: flex;
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="password"],
+textarea,
+select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #cfd4dc;
+  border-radius: 10px;
+  background: #fff;
+  outline: none;
+  transition: box-shadow .15s ease, border-color .15s ease;
+  font-size: 15px;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+}
+
+/* Fichiers */
+input[type="file"] {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px dashed #cfd4dc;
+  background: #fff;
+}
+
+/* ======== Boutons ======== */
+.btn {
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
-  margin: 0;
-  line-height: 1.1;
-}
-
-.admin-title .icon{
-  width: 28px;
-  height: 28px;
-  display: inline-block;
-}
-
-.admin-user{
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 500;
-}
-
-.btn.btn-outline{
-  border: 1px solid #1e73be;
-  background: transparent;
-  padding: 8px 12px;
-  border-radius: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid transparent;
   cursor: pointer;
+  font-weight: 700;
+  text-decoration: none;
+  user-select: none;
+  transition: transform .06s ease, filter .15s ease, background .15s ease;
 }
 
-.btn.btn-outline:hover{
-  background: rgba(30,115,190,0.08);
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
+}
+.btn-primary:hover { filter: brightness(1.05); }
+
+.btn-outline {
+  background: transparent;
+  border-color: #2563eb;
+  color: #2563eb;
+}
+.btn-outline:hover {
+  background: #2563eb10;
 }
 
-/* Fond géométrique + ne bloque pas les clics */
-body.page-admin{
-  min-height: 100vh;
-  background-image: url("/assets/bg-geo.png");
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
+/* Bouton “Se déconnecter” aligné à droite sur desktop */
+.actions {
+  margin-left: auto;
 }
-body.page-admin::before{
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: rgba(255,255,255,0.35);
-  pointer-events: none; /* important : les clics passent */
+
+/* ======== Cartes/sections ======== */
+.card {
+  background: #ffffffcc; /* blanc avec un peu de transparence */
+  border: 1px solid #e8ecf2;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.04);
 }
+
+/* ======== Table/listes ======== */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.table th, .table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef2f6;
+  text-align: left;
+  font-size: 14px;
+}
+.table th {
+  background: #f6f8fb;
+  font-weight: 700;
+}
+
+/* ======== Grille responsive ======== */
+.grid {
+  display: grid;
+  gap: 18px;
+}
+@media (min-width: 900px) {
+  .grid.cols-2 { grid-template-columns: 1fr 1fr; }
+}
+
+/* ======== Petits correctifs ======== */
+a { color: #1d4ed8; }
+a:hover { text-decoration: underline; }
+
+/* Évite que le fond masque du contenu sticky */
+main { position: relative; z-index: 1; }
