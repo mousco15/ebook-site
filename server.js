@@ -31,11 +31,11 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    httpOnly: true,
-    sameSite: isProd ? 'none' : 'lax',
-    secure: isProd,
-    maxAge: 7 * 24 * 60 * 60 * 1000
-  }
+  httpOnly: true,
+  sameSite: 'none',
+  secure: true,
+  maxAge: 7 * 24 * 60 * 60 * 1000
+}
 }));
 // ------- FIN CONFIG SESSION -------
 
