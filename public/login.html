@@ -21,7 +21,28 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const data = Object.fromEntries(new FormData(form));
-      const res = await fetch('/api/login', {
+      <script>
+  async function doLogin(e) {
+    e.preventDefault();
+    const email = document.querySelector('#email').value.trim();
+    const password = document.querySelector('#password').value.trim();
+
+    const resp = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',     // <= TRÈS IMPORTANT
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await resp.json();
+    if (data.ok) {
+      window.location.href = '/admin.html';
+    } else {
+      alert('Identifiants invalides');
+    }
+  }
+</script>
+
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
