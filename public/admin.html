@@ -53,7 +53,20 @@
     });
 
     async function load() {
-      const res = await fetch('/api/ebooks');
+      const formData = new FormData(document.getElementById('ebookForm'));
+const resp = await fetch('/api/ebooks', {
+  method: 'POST',
+  body: formData,            // NE PAS mettre 'Content-Type' quand on envoie du FormData
+  credentials: 'include'     // <= IMPORTANT pour envoyer le cookie
+});
+const data = await resp.json();
+if (data.ok) {
+  alert('Ebook ajouté !');
+  // ... ton code de rafraîchissement de liste ...
+} else {
+  alert('Erreur: ' + (data.error || 'inconnue'));
+}
+
       const items = await res.json();
       const list = document.getElementById('list');
       list.innerHTML = items.map(b => `
