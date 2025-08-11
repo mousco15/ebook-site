@@ -69,3 +69,69 @@ body.page-admin::before {
   .form-card { width: 100%; }
   input, select, textarea { max-width: 100%; }
 }
+/* S'assure que le contenu est au-dessus du fond */
+.container, main, .admin-top { position: relative; z-index: 1; }
+
+/* Header admin : titre + bloc user côte à côte */
+.admin-top{
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 640px){
+  .admin-top{ grid-template-columns: 1fr; }
+  .admin-user{ justify-self: start; }
+}
+
+.admin-title{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.admin-title .icon{
+  width: 28px;
+  height: 28px;
+  display: inline-block;
+}
+
+.admin-user{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.btn.btn-outline{
+  border: 1px solid #1e73be;
+  background: transparent;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn.btn-outline:hover{
+  background: rgba(30,115,190,0.08);
+}
+
+/* Fond géométrique + ne bloque pas les clics */
+body.page-admin{
+  min-height: 100vh;
+  background-image: url("/assets/bg-geo.png");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+body.page-admin::before{
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,0.35);
+  pointer-events: none; /* important : les clics passent */
+}
