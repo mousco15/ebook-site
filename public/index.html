@@ -1,44 +1,66 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bibliothèque d'Ebooks</title>
-  <script defer src="main.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/custom.css?v=3">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ma Bibliothèque</title>
+  <link rel="stylesheet" href="/custom.css?v=7">
   <style>
-    .grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap: 1rem; }
-    .cover { width: 100%; height: 280px; object-fit: cover; background:#eee; }
-    header { margin: 1rem 0; }
+    header{max-width:1100px;margin:20px auto 10px;padding:0 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    header h1{margin:0}
+    #search{flex:1;min-width:240px;padding:10px 12px;border:1px solid #cfd4dc;border-radius:10px}
+    main{max-width:1100px;margin:0 auto;padding:0 14px 24px}
+    .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+    .card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.06)}
+    .card img{width:100%;height:260px;object-fit:cover;background:#f3f4f6}
+    .card .p{padding:12px}
+    .btn{display:inline-block;margin-top:8px;padding:8px 12px;border-radius:8px;background:#0d6efd;color:#fff;text-decoration:none}
+    .muted{color:#6b7280}
   </style>
 </head>
 <body>
-  <main class="container">
-    <section class="hero" style="padding:48px 0;">
-  <div class="container">
-    <h1 style="margin:0;">Bienvenue dans ta bibliothèque</h1>
-    <p style="margin:8px 0 0; max-width:680px;">
-      Recherchez, lisez et téléchargez des ebooks triés par nos soins.
-    </p>
-  </div>
-</section>
-    <header>
-      <h1>📚 Bibliothèque d'Ebooks</h1>
-            <form id="searchForm">
-        <input type="search" id="q" placeholder="Rechercher (titre, auteur, mots-clés)…" />
-        <select id="lang">
-          <option value="">Langue</option>
-          <option value="fr">Français</option>
-          <option value="en">Anglais</option>
-        </select>
-        <input type="text" id="category" placeholder="Catégorie (ex: business)" />
-        <button type="submit">Rechercher</button>
-      </form>
-    </header>
+  <header>
+    <h1>📚 Ma Bibliothèque</h1>
+    <input type="text" id="search" placeholder="Rechercher un livre…">
+  </header>
 
-    <section id="results" class="grid"></section>
+  <main>
+    <div id="ebook-list" class="grid"></div>
   </main>
+
+  <script>
+    async function loadEbooks(query = '') {
+      try {
+        const res = await fetch('/api/ebooks' + (query ? ('?q=' + encodeURIComponent(query)) : ''));
+        const data = await res.json();
+        const list = document.getElementById('ebook-list');
+
+        if (!Array.isArray(data) || !data.length) {
+          list.innerHTML = '<p class="muted">Aucun livre trouvé.</p>';
+          return;
+        }
+
+        list.innerHTML = data.map(e => `
+          <div class="card">
+            <img src="${e.cover_path || '/placeholder.jpg'}" alt="${e.title || ''}">
+            <div class="p">
+              <h3 style="margin:0 0 6px">${e.title || ''}</h3>
+              <div class="muted">${e.author || ''}</div>
+              <a class="btn" href="/ebook.html?id=${e.id}">Voir</a>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Erreur chargement ebooks:', err);
+        document.getElementById('ebook-list').innerHTML = '<p>Erreur de chargement.</p>';
+      }
+    }
+
+    document.getElementById('search').addEventListener('input', (e) => {
+      loadEbooks(e.target.value.trim());
+    });
+
+    loadEbooks();
+  </script>
 </body>
 </html>
