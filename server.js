@@ -32,8 +32,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    // Mode compatible (TEST). Quand tout marche bien en HTTPS partout,
-    // tu pourras passer à: sameSite: 'none', secure: true
+    // Compatible mobiles (Safari iOS) : on force lax/secure:false
     sameSite: 'lax',
     secure: false,
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
@@ -109,11 +108,12 @@ const supabase = createClient(
 );
 const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'ebook-site2';
 
-// ✅ Multer correct : un SEUL middleware avec memoryStorage
-const upload = multer({
+// Multer en mémoire (pas d’écriture disque Render)
+const storage = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 } // 50 Mo
 });
+const upload = multer({ storage });
 
 async function uploadToSupabase(file, destPath) {
   const { error } = await supabase
@@ -124,11 +124,7 @@ async function uploadToSupabase(file, destPath) {
       cacheControl: '31536000',
       upsert: false
     });
-
-  if (error) {
-    console.error('Supabase upload error:', error);
-    throw error;
-  }
+  if (error) throw error;
 
   const { data: pub } = supabase
     .storage
@@ -161,6 +157,18 @@ app.get('/api/ebooks', (req, res) => {
   );
 });
 
+// ➜ DÉTAIL D’UN EBOOK (pour la page /ebook.html)
+app.get('/api/ebooks/:id', (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ error: 'Identifiant invalide' });
+
+  db.get(`SELECT * FROM ebooks WHERE id=?`, [id], (err, row) => {
+    if (err) return res.status(500).json({ error: 'Erreur base de données' });
+    if (!row) return res.status(404).json({ error: 'Livre introuvable' });
+    res.json(row);
+  });
+});
+
 // Ajout (ADMIN)
 app.post(
   '/api/ebooks',
@@ -176,7 +184,7 @@ app.post(
         return res.status(400).json({ error: 'Titre, auteur et fichier PDF obligatoires.' });
       }
 
-      const sanitize = (n) => n.replace(/[^\w.\-]/g, '_');
+      const sanitize = (n) => n.replace(/[^\w\.-]/g, '_');
       const now = Date.now();
       let coverUrl = null;
       let pdfUrl = null;
@@ -228,7 +236,7 @@ app.put(
       const coverFile = req.files?.cover?.[0];
       const pdfFile = req.files?.pdf?.[0];
 
-      const sanitize = (n) => n.replace(/[^\w.\-]/g, '_');
+      const sanitize = (n) => n.replace(/[^\w\.-]/g, '_');
       const fields = [];
       const params = [];
 
