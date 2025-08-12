@@ -1,4 +1,4 @@
-// server.js — version complète (ES Modules) avec Supabase Storage + Session + Auth
+// server.js — Express + Sessions + SQLite + Supabase Storage (uploads persistants)
 
 import express from 'express';
 import path from 'path';
@@ -8,23 +8,19 @@ import sqlite3 from 'sqlite3';
 import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
 
-// ---------- Helpers chemin ----------
+// ---------- Helpers ----------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// ---------- App ----------
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ---------- Static & body parsers ----------
+// ---------- Static & parsers ----------
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// ---------- Sessions (une seule fois) ----------
-app.set('trust proxy', 1); // Render est derrière un proxy
-const isProd = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
-
+// ---------- Sessions ----------
+app.set('trust proxy', 1);
 app.use(session({
   name: 'sid',
   secret: process.env.SESSION_SECRET || 'change-me',
@@ -32,14 +28,13 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    // Compatibilité mobile : on reste en lax + secure:false côté HTTP(s) Render
-    sameSite: 'lax',
-    secure: false,
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
+    sameSite: 'lax',      // compatible mobiles
+    secure: false,        // si plus tard tu as un domaine HTTPS propre: passe à true + sameSite:'none'
+    maxAge: 7 * 24 * 60 * 60 * 1000
   }
 }));
 
-// ---------- BDD SQLite ----------
+// ---------- SQLite ----------
 sqlite3.verbose();
 const dbFile = path.join(__dirname, 'data.sqlite');
 const db = new sqlite3.Database(dbFile);
@@ -74,10 +69,8 @@ app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body || {};
     if (!email || !password) return res.status(400).json({ ok: false, error: 'missing' });
-
     const ok = (email === ADMIN_EMAIL && password === ADMIN_PASSWORD);
     if (!ok) return res.status(401).json({ ok: false, error: 'invalid' });
-
     req.session.user = { email };
     req.session.save(err => {
       if (err) return res.status(500).json({ ok: false, error: 'session' });
@@ -101,46 +94,41 @@ app.post('/api/logout', (req, res) => {
   });
 });
 
-// ---------- Supabase Storage ----------
+// ---------- Supabase Storage (PERSISTANT) ----------
 const supabase = createClient(
-  process.env.SUPABASE_URL,          // ex: https://xxxxx.supabase.co
-  process.env.SUPABASE_SERVICE_KEY   // **service_role** (pas la anon)
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
 );
 const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'ebook-site2';
 
-// ✅ Multer : mémoire (bonne API)
-const storage = multer.memoryStorage();             // <- IMPORTANT: avec ()
-const upload  = multer({
-  storage,
-  limits: { fileSize: 50 * 1024 * 1024 }           // 50 Mo
+// Multer en MEMOIRE (aucun fichier écrit sur Render)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 } // 50 Mo
 });
 
+// Helper upload -> retourne une URL publique
 async function uploadToSupabase(file, destPath) {
   const { error } = await supabase
     .storage
     .from(SUPABASE_BUCKET)
     .upload(destPath, file.buffer, {
       contentType: file.mimetype || 'application/octet-stream',
-      cacheControl: '31536000',
-      upsert: false
+      upsert: false,
+      cacheControl: '31536000'
     });
-
   if (error) {
     console.error('Supabase upload error:', error);
     throw error;
   }
 
-  const { data: pub } = supabase
-    .storage
-    .from(SUPABASE_BUCKET)
-    .getPublicUrl(destPath);
-
-  return pub.publicUrl;
+  const { data: pub } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(destPath);
+  return pub.publicUrl; // URL accessible publiquement (grâce à la policy "Get")
 }
 
 // ---------- API ebooks ----------
 
-// Liste / recherche
+// Liste + recherche
 app.get('/api/ebooks', (req, res) => {
   const q = (req.query.q || '').trim();
   const base = `SELECT * FROM ebooks`;
@@ -161,19 +149,17 @@ app.get('/api/ebooks', (req, res) => {
   );
 });
 
-// Détail d’un ebook (pour /ebook.html?id=...)
+// Détail (pour la page ebook.html?id=123)
 app.get('/api/ebooks/:id', (req, res) => {
   const id = Number(req.params.id);
-  if (!id) return res.status(400).json({ error: 'Identifiant invalide' });
-
   db.get(`SELECT * FROM ebooks WHERE id=?`, [id], (err, row) => {
-    if (err) return res.status(500).json({ error: 'Erreur base de données' });
-    if (!row) return res.status(404).json({ error: 'Livre introuvable' });
+    if (err) return res.status(500).json({ error: 'DB error' });
+    if (!row) return res.status(404).json({ error: 'Not found' });
     res.json(row);
   });
 });
 
-// Ajout (ADMIN)
+// Ajout (ADMIN) — envoie COVER/PDF vers Supabase
 app.post(
   '/api/ebooks',
   requireAuth,
@@ -182,25 +168,23 @@ app.post(
     try {
       const { title, author, description, language, price_cents, categories } = req.body;
       const coverFile = req.files?.cover?.[0];
-      const pdfFile   = req.files?.pdf?.[0];
+      const pdfFile = req.files?.pdf?.[0];
 
       if (!title || !author || !pdfFile) {
         return res.status(400).json({ error: 'Titre, auteur et fichier PDF obligatoires.' });
       }
 
-      const sanitize = (n) => n.replace(/[^\w.\-]/g, '_');
+      const sanitize = (n) => n.replace(/[^\w\.-]/g, '_');
       const now = Date.now();
-      let coverUrl = null;
-      let pdfUrl   = null;
 
+      let coverUrl = null;
       if (coverFile) {
         const dest = `covers/${now}-${sanitize(coverFile.originalname)}`;
         coverUrl = await uploadToSupabase(coverFile, dest);
       }
-      {
-        const dest = `pdfs/${now}-${sanitize(pdfFile.originalname)}`;
-        pdfUrl = await uploadToSupabase(pdfFile, dest);
-      }
+
+      const pdfDest = `pdfs/${now}-${sanitize(pdfFile.originalname)}`;
+      const pdfUrl = await uploadToSupabase(pdfFile, pdfDest);
 
       const stmt = db.prepare(
         `INSERT INTO ebooks
@@ -228,7 +212,7 @@ app.post(
   }
 );
 
-// Edition (ADMIN)
+// Edition (ADMIN) — remplace éventuelles nouvelles fichiers sur Supabase
 app.put(
   '/api/ebooks/:id',
   requireAuth,
@@ -238,9 +222,9 @@ app.put(
       const id = Number(req.params.id);
       const { title, author, description, language, price_cents, categories } = req.body;
       const coverFile = req.files?.cover?.[0];
-      const pdfFile   = req.files?.pdf?.[0];
+      const pdfFile = req.files?.pdf?.[0];
 
-      const sanitize = (n) => n.replace(/[^\w.\-]/g, '_');
+      const sanitize = (n) => n.replace(/[^\w\.-]/g, '_');
       const fields = [];
       const params = [];
 
@@ -286,12 +270,13 @@ app.delete('/api/ebooks/:id', requireAuth, (req, res) => {
   });
 });
 
-// ---------- Pages (accès direct) ----------
+// ---------- Pages (routing direct) ----------
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/ebook.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'ebook.html')));
 
-// ---------- Lancement ----------
+// ---------- Start ----------
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
