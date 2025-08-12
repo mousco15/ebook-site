@@ -1,97 +1,53 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Détail du livre</title>
-
-  <link rel="stylesheet" href="custom.css?v=5">
+  <link rel="stylesheet" href="/custom.css">
   <style>
-    .container { max-width: 1100px; margin: 0 auto; padding: 16px; }
-    .hero { background: rgba(255,255,255,.92); border-radius: 14px; padding: 18px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
-    .row { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
-    .cover { width: 100%; height: 400px; object-fit: cover; border-radius: 10px; }
-    .btn { display: inline-block; padding: 10px 14px; border-radius: 8px; background: #0d6efd; color: #fff; text-decoration: none; }
-    .btn.secondary { background: #6c757d; }
-    iframe { width: 100%; height: 70vh; border: none; border-radius: 12px; background: #fff; }
-    @media (max-width: 860px) { .row { grid-template-columns: 1fr; } .cover{height:300px;} }
+    .wrap { max-width: 980px; margin: 24px auto; background:#fff; padding: 16px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+    .row { display:flex; gap: 16px; flex-wrap: wrap; }
+    .cover { width: 280px; height: 380px; object-fit: cover; border-radius: 10px; background:#f4f6f8; }
+    .meta h1 { margin:0 0 8px; }
+    iframe { width: 100%; height: 80vh; border: none; border-radius: 10px; background:#fafafa; }
   </style>
 </head>
 <body>
-  <main class="container">
-    <p><a href="index.html">← Retour</a></p>
+  <div class="wrap">
+    <a href="/" style="text-decoration:none;">← Retour</a>
+    <div id="detail"></div>
+  </div>
 
-    <section class="hero">
-      <div class="row">
-        <div>
-          <img id="cover" class="cover" alt="">
-        </div>
-        <div>
-          <h1 id="title"></h1>
-          <p id="author" style="color:#555"></p>
-          <p id="desc"></p>
-          <p id="meta" style="opacity:.8"></p>
-          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px">
-            <a id="download" class="btn" href="#" target="_blank" rel="noopener">Télécharger le PDF</a>
-            <a id="open" class="btn secondary" href="#" target="_blank" rel="noopener">Ouvrir dans un nouvel onglet</a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section style="margin-top:18px" id="viewerWrap" class="hero">
-      <h3 style="margin-top:0">Aperçu</h3>
-      <iframe id="viewer" src=""></iframe>
-    </section>
-  </main>
-
-  <script type="module">
-    function qs(id){ return document.getElementById(id); }
-    function getId(){
-      const u = new URL(location.href);
-      return u.searchParams.get('id');
+  <script>
+    function qp(name) {
+      return new URLSearchParams(location.search).get(name);
     }
 
     async function load() {
-      const id = Number(getId());
-      if (!id) { location.href = 'index.html'; return; }
+      const id = qp('id');
+      if (!id) { location.href = '/'; return; }
 
-      try {
-        // L’API actuelle renvoie la liste → on filtre localement
-        const res = await fetch('/api/ebooks');
-        const all = await res.json();
-        const e = all.find(x => Number(x.id) === id);
-        if (!e) { qs('viewerWrap').innerHTML = '<p>Introuvable.</p>'; return; }
+      const res = await fetch(`/api/ebooks/${encodeURIComponent(id)}`);
+      if (!res.ok) { document.getElementById('detail').textContent = 'Livre introuvable.'; return; }
+      const e = await res.json();
 
-        qs('title').textContent = e.title || '';
-        qs('author').textContent = e.author ? 'par ' + e.author : '';
-        qs('desc').textContent = e.description || '';
-        qs('meta').textContent = (e.language ? ('Langue : ' + e.language) : '')
-          + (e.price_cents ? (' · Prix : ' + (Number(e.price_cents)/100).toFixed(2) + ' €') : '');
-
-        if (e.cover_path) {
-          qs('cover').src = e.cover_path;
-          qs('cover').alt = e.title || '';
-        } else {
-          qs('cover').style.display = 'none';
-        }
-
-        if (e.pdf_path) {
-          // Boutons
-          qs('download').href = e.pdf_path;
-          qs('open').href = e.pdf_path;
-
-          // Lecteur intégré (Google viewer sûr, n’affecte pas tes fichiers)
-          const gv = 'https://drive.google.com/viewerng/viewer?embedded=true&url='
-                     + encodeURIComponent(e.pdf_path);
-          qs('viewer').src = gv;
-        } else {
-          qs('viewerWrap').innerHTML = '<p>PDF non disponible.</p>';
-        }
-      } catch (err) {
-        console.error(err);
-        qs('viewerWrap').innerHTML = '<p>Erreur de chargement.</p>';
-      }
+      document.getElementById('detail').innerHTML = `
+        <div class="row">
+          <img class="cover" src="${e.cover_path || '/assets/placeholder-cover.svg'}" alt="">
+          <div class="meta">
+            <h1>${e.title || ''}</h1>
+            <div>Auteur : <strong>${e.author || ''}</strong></div>
+            <div>Langue : ${e.language || 'fr'}</div>
+            <div>Catégories : ${e.categories || '—'}</div>
+            <p style="margin-top:8px;">${e.description || ''}</p>
+            <p>
+              ${e.pdf_path ? `<a href="${e.pdf_path}" target="_blank" rel="noopener">Télécharger le PDF</a>` : ''}
+            </p>
+          </div>
+        </div>
+        ${e.pdf_path ? `<h3>Lecture en ligne</h3><iframe src="${e.pdf_path}#view=fitH"></iframe>` : ''}
+      `;
     }
 
     load();
