@@ -2,36 +2,73 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Détail Ebook</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/custom.css?v=3">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Détail du livre</title>
+  <link rel="stylesheet" href="/custom.css?v=7">
+  <style>
+    .container{max-width:1000px;margin:20px auto;padding:0 14px}
+    .card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 6px 22px rgba(0,0,0,.08)}
+    .cover-lg{width:100%;max-width:520px;height:auto;border-radius:8px;display:block;margin:0 auto 16px}
+    .btn{display:inline-block;padding:10px 16px;border-radius:8px;background:#0d6efd;color:#fff;text-decoration:none}
+    .btn-outline{background:transparent;color:#0d6efd;border:1px solid #0d6efd}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+    .viewer{margin-top:14px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden}
+    .viewer iframe{width:100%;height:75vh;border:0}
+    .muted{color:#6b7280}
+  </style>
 </head>
 <body>
   <main class="container">
-    <a href="/">← Retour</a>
-    <article id="content"></article>
+    <p><a class="btn btn-outline" href="/">&larr; Retour</a></p>
+    <div id="ebookDetail" class="card">Chargement…</div>
   </main>
 
   <script>
-    async function init() {
-      const params = new URLSearchParams(location.search);
-      const id = params.get('id');
-      const res = await fetch(`/api/ebooks/${id}`);
-      const book = await res.json();
-      const el = document.getElementById('content');
-      el.innerHTML = `
-        <h1>${book.title}</h1>
-        <p><strong>Auteur :</strong> ${book.author}</p>
-        <img src="${book.cover_path || ''}" alt="Couverture" style="max-width:300px;max-height:420px;object-fit:cover"/>
-        <p>${book.description || ''}</p>
-        <p><strong>Langue :</strong> ${book.language} • <strong>Catégories :</strong> ${book.categories || '-'}</p>
-        <p><strong>Prix :</strong> ${((book.price_cents||0)/100).toFixed(2)} </p>
-        <p><a href="${book.pdf_path}" download>Télécharger (gratuit pour l'instant)</a></p>
+  (async () => {
+    const params = new URLSearchParams(location.search);
+    const id = Number(params.get('id'));
+    const box = document.getElementById('ebookDetail');
+
+    if (!id) { box.innerHTML = "<p>Identifiant manquant.</p>"; return; }
+
+    try {
+      const res = await fetch('/api/ebooks/' + id);
+      if (!res.ok) { box.innerHTML = "<p>Impossible de charger ce livre.</p>"; return; }
+      const e = await res.json();
+
+      const cover = e.cover_path ? `<img class="cover-lg" src="${e.cover_path}" alt="Couverture">` : "";
+      const meta  = `
+        <h1>${e.title || 'Sans titre'}</h1>
+        <p><strong>Auteur :</strong> ${e.author || '-'}</p>
+        ${e.language ? `<p><strong>Langue :</strong> ${e.language}</p>` : ''}
+        ${e.categories ? `<p><strong>Catégories :</strong> ${e.categories}</p>` : ''}
+        ${e.description ? `<p>${e.description}</p>` : ''}
       `;
+
+      // Actions : ouvrir dans le lecteur + téléchargement
+      const actions = e.pdf_path ? `
+        <div class="actions">
+          <a class="btn" href="${e.pdf_path}" target="_blank" rel="noopener">📖 Ouvrir dans un nouvel onglet</a>
+          <a class="btn btn-outline" href="${e.pdf_path}" download>⬇️ Télécharger le PDF</a>
+        </div>
+      ` : '<p class="muted">PDF indisponible.</p>';
+
+      // Lecteur intégré (si PDF dispo)
+      const viewer = e.pdf_path ? `
+        <div class="viewer">
+          <iframe src="${e.pdf_path}#view=FitH" title="Lecteur PDF"></iframe>
+        </div>
+        <p class="muted" style="margin-top:8px">
+          Si le lecteur intégré ne s’affiche pas, utilisez le bouton “Ouvrir dans un nouvel onglet”.
+        </p>
+      ` : '';
+
+      box.innerHTML = `${cover}${meta}${actions}${viewer}`;
+    } catch (err) {
+      console.error(err);
+      box.innerHTML = "<p>Erreur inattendue.</p>";
     }
-    init();
+  })();
   </script>
 </body>
 </html>
