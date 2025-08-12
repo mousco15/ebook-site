@@ -210,3 +210,7 @@ img.thumb {
 .ebook-card img {
   max-height: 320px;         /* ajuste si tu veux plus/moins haut */
 }
+.card { background:#fff; border-radius:12px; padding:14px; margin:10px 0; box-shadow:0 2px 10px rgba(0,0,0,.04); }
+.card .cover { width:100%; height:auto; display:block; border-radius:10px; }
+.btn { display:inline-block; padding:8px 14px; border-radius:8px; background:#0d6efd; color:#fff; text-decoration:none; }
+.btn:hover { opacity:.9; }
