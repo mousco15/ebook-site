@@ -25,17 +25,59 @@
   </footer>
 
   <script>
-    async function loadEbooks(query = '') {
-      try {
-        const url = '/api/ebooks' + (query ? ('?q=' + encodeURIComponent(query)) : '');
-        const res = await fetch(url);
-        const data = await res.json();
-        const list = document.getElementById('ebook-list');
+    <script>
+  // ====== CONFIG (à adapter juste ici) ======
+  const SUPABASE_URL = 'https://TON-PROJET.supabase.co'; // <- remplace par ton Project URL
+  const SUPABASE_BUCKET = 'ebook-site2';                  // ton bucket
+  // =========================================
 
-        if (!Array.isArray(data) || !data.length) {
-          list.innerHTML = '<p>Aucun livre trouvé.</p>';
-          return;
-        }
+  // Transforme un chemin "pdfs/xxx.pdf" ou "covers/xxx.jpg" en URL publique complète
+  function toPublicUrl(pathOrUrl) {
+    if (!pathOrUrl) return '';
+    if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl; // déjà une URL complète
+    const base = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/`;
+    return base + String(pathOrUrl).replace(/^\/+/, '');
+  }
+
+  async function loadBooks() {
+    try {
+      const q = new URLSearchParams(location.search).get('q') || '';
+      const res = await fetch('/api/ebooks' + (q ? `?q=${encodeURIComponent(q)}` : ''));
+      const items = await res.json();
+
+      const list = document.getElementById('results');
+      if (!list) return;
+      list.innerHTML = '';
+
+      items.forEach(b => {
+        const coverUrl = toPublicUrl(b.cover_path);
+        const pdfUrl   = toPublicUrl(b.pdf_path);
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="card-body">
+            ${coverUrl ? `<img class="cover" src="${coverUrl}" alt="${b.title || ''}">` : ''}
+            <h3 class="title">${b.title || ''}</h3>
+            <div class="author">${b.author || ''}</div>
+            ${b.description ? `<p class="desc">${b.description}</p>` : ''}
+            <div class="actions">
+              ${pdfUrl ? `
+                <a class="btn" href="${pdfUrl}" target="_blank" rel="noopener">Voir</a>
+                <a class="btn secondary" href="${pdfUrl}" download>Télécharger</a>
+              ` : ''}
+            </div>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    } catch (e) {
+      console.error('Erreur chargement ebooks:', e);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', loadBooks);
+</script>
 
         list.innerHTML = data.map(e => `
           <div class="card">
