@@ -186,3 +186,7 @@ a:hover { text-decoration: underline; }
 
 /* Évite que le fond masque du contenu sticky */
 main { position: relative; z-index: 1; }
+/* Adoucir le voile si le fond paraît flou */
+body::before { 
+  background: rgba(255,255,255,0.30) !important; 
+}
