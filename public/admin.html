@@ -3,296 +3,227 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin — Ebooks</title>
+  <title>Admin - Ebooks</title>
 
-  <!-- Styles globaux puis personnalisations (custom.css contient le fond géométrique) -->
-  <link rel="stylesheet" href="styles.css?v=5">
-  <link rel="stylesheet" href="custom.css?v=5">
+  <!-- Styles de base Bootstrap (pour la mise en page propre) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  <style>
-    /* Renforts de mise en page pour mobile */
-    :root { --gap: 16px; }
-    body { margin:0; }
-    .container { max-width: 980px; margin: 0 auto; padding: var(--gap); }
-    header.admin-top {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      align-items: center;
-      gap: var(--gap);
-      padding: calc(var(--gap)*1.25) var(--gap) 0;
-    }
-    header.admin-top h1 {
-      margin: 0;
-      line-height: 1.05;
-      font-size: clamp(26px, 5vw, 46px);
-    }
-    .who {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      justify-self: end;
-      flex-wrap: wrap;
-      font-weight: 600;
-    }
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      padding: 10px 16px; border-radius: 10px; font-weight: 700;
-      border: 2px solid #4a90e2; color: #1a5fb4; background: rgba(255,255,255,.75);
-      cursor: pointer; text-decoration: none;
-    }
-    .btn:hover { filter: brightness(0.95); }
-
-    main { padding: var(--gap); }
-    .cards { display: grid; gap: var(--gap); grid-template-columns: 1fr; }
-    @media (min-width: 820px) { .cards { grid-template-columns: 1fr 1fr; } }
-
-    .card {
-      background: rgba(255,255,255,.85);
-      border: 1px solid rgba(0,0,0,.06);
-      border-radius: 14px;
-      padding: 16px;
-      box-shadow: 0 6px 18px rgba(0,0,0,.06);
-      backdrop-filter: blur(3px);
-    }
-    .card h2 { margin: 0 0 10px; font-size: 18px; }
-    form .row { display: grid; gap: 10px; grid-template-columns: 1fr; margin-bottom: 10px; }
-    @media (min-width: 620px) { form .row.two { grid-template-columns: 1fr 1fr; } }
-    label { font-size: 13px; font-weight: 600; }
-    input[type="text"], input[type="number"], textarea, select, input[type="file"] {
-      width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(0,0,0,.15);
-      background: #fff;
-    }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th, td { text-align: left; padding: 10px; border-bottom: 1px solid rgba(0,0,0,.08); }
-    .actions { display: flex; gap: 8px; }
-    .muted { color: #666; font-size: 13px; }
-  </style>
+  <!-- Ton style -->
+  <link rel="stylesheet" href="./custom.css?v=5">
 </head>
-<body>
+<body class="bg-geo">
 
-  <!-- EN-TÊTE -->
-  <header class="admin-top">
-    <h1>Ajouter / Gérer les Ebooks</h1>
-    <div class="who">
-      <span class="muted">Connecté en tant que</span>
-      <span id="who">—</span>
-      <button id="btnLogout" class="btn" type="button">Se déconnecter</button>
+  <main class="container py-4">
+
+    <!-- Barre de titre + session -->
+    <header class="d-flex flex-wrap align-items-center justify-content-between mb-4">
+      <h1 class="h2 m-0">➕ Ajouter / Gérer les Ebooks</h1>
+
+      <div class="d-flex align-items-center gap-3">
+        <div class="small text-muted">
+          <div>Connecté en tant que</div>
+          <strong id="whoami">...</strong>
+        </div>
+        <button id="btnLogout" class="btn btn-outline-primary">Se déconnecter</button>
+      </div>
+    </header>
+
+    <!-- Boutons d’action -->
+    <div class="mb-3 d-flex gap-2">
+      <button id="btnShowAdd"   class="btn btn-primary">Ajouter</button>
+      <button id="btnShowManage" class="btn btn-outline-secondary">Gérer</button>
     </div>
-  </header>
 
-  <!-- CONTENU -->
-  <main class="container">
-    <div class="cards">
-      <!-- AJOUT / ÉDITION -->
-      <section class="card">
-        <h2>Ajouter un ebook</h2>
+    <!-- ===== Section : AJOUT ===== -->
+    <section id="secAdd" class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Ajouter un ebook</h2>
+
         <form id="addForm" enctype="multipart/form-data">
-          <div class="row two">
-            <div>
-              <label for="title">Titre *</label>
-              <input id="title" name="title" type="text" required />
-            </div>
-            <div>
-              <label for="author">Auteur *</label>
-              <input id="author" name="author" type="text" required />
-            </div>
+          <div class="mb-3">
+            <label class="form-label">Titre *</label>
+            <input name="title" class="form-control" required>
           </div>
 
-          <div class="row">
-            <div>
-              <label for="description">Description</label>
-              <textarea id="description" name="description" rows="3" placeholder="Résumé, points forts…"></textarea>
-            </div>
+          <div class="mb-3">
+            <label class="form-label">Auteur *</label>
+            <input name="author" class="form-control" required>
           </div>
 
-          <div class="row two">
-            <div>
-              <label for="language">Langue</label>
-              <select id="language" name="language">
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="3" placeholder="Résumé, points forts…"></textarea>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Langue</label>
+              <select name="language" class="form-select">
                 <option value="fr" selected>Français</option>
                 <option value="en">Anglais</option>
               </select>
             </div>
-            <div>
-              <label for="price_cents">Prix (centimes)</label>
-              <input id="price_cents" name="price_cents" type="number" min="0" step="1" placeholder="ex: 990" />
+            <div class="col-md-6">
+              <label class="form-label">Prix (centimes)</label>
+              <input name="price_cents" type="number" min="0" class="form-control" placeholder="ex: 990">
             </div>
           </div>
 
-          <div class="row">
-            <div>
-              <label for="categories">Catégories (séparées par des virgules)</label>
-              <input id="categories" name="categories" type="text" placeholder="ex: business, entrepreneuriat" />
+          <div class="mb-3 mt-3">
+            <label class="form-label">Catégories (séparées par des virgules)</label>
+            <input name="categories" class="form-control" placeholder="ex: business, entrepreneuriat">
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Couverture (JPG/PNG)</label>
+              <!-- ⚠️ NOM EXACT attendus par le serveur -->
+              <input name="cover" type="file" accept="image/*" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Fichier PDF *</label>
+              <!-- ⚠️ NOM EXACT attendus par le serveur -->
+              <input name="pdf" type="file" accept="application/pdf" class="form-control" required>
             </div>
           </div>
 
-          <div class="row two">
-            <div>
-              <label for="cover">Couverture (JPG/PNG)</label>
-              <input id="cover" name="cover" type="file" accept="image/*" />
-            </div>
-            <div>
-              <label for="pdf">Fichier PDF *</label>
-              <input id="pdf" name="pdf" type="file" accept="application/pdf" required />
-            </div>
-          </div>
-
-          <div class="row">
-            <button class="btn" type="submit">Enregistrer</button>
+          <div class="mt-4">
+            <button class="btn btn-primary">Enregistrer</button>
           </div>
         </form>
-      </section>
+      </div>
+    </section>
 
-      <!-- LISTE / GESTION -->
-      <section class="card">
-        <h2>Gérer les ebooks</h2>
+    <!-- ===== Section : GESTION ===== -->
+    <section id="secManage" class="card shadow-sm mb-4 d-none">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Bibliothèque (Gérer)</h2>
 
-        <div class="row">
-          <input id="q" type="text" placeholder="Rechercher (titre, auteur, mots-clés…)" />
-          <button id="btnSearch" class="btn" type="button">Rechercher</button>
-        </div>
+        <!-- Recherche -->
+        <form id="searchForm" class="row g-2 mb-3">
+          <div class="col-sm-9">
+            <input id="q" class="form-control" placeholder="Rechercher (titre, auteur, mots-clés…)">
+          </div>
+          <div class="col-sm-3 d-grid">
+            <button class="btn btn-outline-primary">Rechercher</button>
+          </div>
+        </form>
 
-        <div class="row">
-          <table id="grid">
+        <!-- Liste -->
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
             <thead>
               <tr>
                 <th>Titre</th>
                 <th>Auteur</th>
-                <th class="muted">Créé</th>
-                <th>Actions</th>
+                <th>Créé</th>
+                <th class="text-end">Actions</th>
               </tr>
             </thead>
-            <tbody><!-- rempli en JS --></tbody>
+            <tbody id="rows"></tbody>
           </table>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
+
   </main>
 
   <script>
-    // ----------- Helpers
-    const $ = (sel, root = document) => root.querySelector(sel);
-    const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
-
-    // ----------- 1) Vérifier la session au chargement
+    // --------- Protéger l’accès : vérifier la session au chargement ---------
     (async () => {
       try {
         const r = await fetch('/api/me', { credentials: 'include' });
-        const data = await r.json();
-        if (!data.user) {
+        const me = await r.json();
+        if (!me.user) {
           location.href = '/login.html';
           return;
         }
-        $('#who').textContent = data.user;
-        // Charger la liste une fois authentifié
-        await loadEbooks();
+        document.getElementById('whoami').textContent = me.user;
       } catch (e) {
-        console.error('Erreur /api/me', e);
+        console.error(e);
         location.href = '/login.html';
       }
     })();
 
-    // ----------- 2) Déconnexion
-    $('#btnLogout').addEventListener('click', async () => {
-      try {
-        await fetch('/api/logout', { method: 'POST', credentials: 'include' });
-      } finally {
-        location.href = '/login.html';
-      }
+    // --------- Toggle Ajouter/Gérer ----------
+    const secAdd    = document.getElementById('secAdd');
+    const secManage = document.getElementById('secManage');
+    const btnAdd    = document.getElementById('btnShowAdd');
+    const btnManage = document.getElementById('btnShowManage');
+
+    function showAdd()   { secAdd.classList.remove('d-none'); secManage.classList.add('d-none'); }
+    function showManage(){ secManage.classList.remove('d-none'); secAdd.classList.add('d-none'); loadList(); }
+
+    btnAdd.addEventListener('click', showAdd);
+    btnManage.addEventListener('click', showManage);
+
+    // Au premier affichage, montrer "Ajouter"
+    showAdd();
+
+    // --------- Déconnexion ----------
+    document.getElementById('btnLogout').addEventListener('click', async () => {
+      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+      location.href = '/login.html';
     });
 
-    // ----------- 3) Soumission du formulaire d’ajout
-    $('#addForm').addEventListener('submit', async (e) => {
+    // --------- Soumission formulaire d’ajout ----------
+    document.getElementById('addForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(e.currentTarget);
       try {
-        const r = await fetch('/api/ebooks', {
+        const res = await fetch('/api/ebooks', {
           method: 'POST',
           body: fd,
-          credentials: 'include'
+          credentials: 'include' // IMPORTANT pour la session
         });
-        const json = await r.json();
-        if (!r.ok || !json.ok) {
-          alert('Erreur: ' + (json.error || r.status));
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) {
+          alert("Échec de l'envoi.");
           return;
         }
         alert('Ebook ajouté !');
         e.currentTarget.reset();
-        await loadEbooks();
+        showManage();
       } catch (err) {
         console.error(err);
         alert("Échec de l'envoi.");
       }
     });
 
-    // ----------- 4) Charger et afficher les ebooks
-    async function loadEbooks(q = '') {
+    // --------- Chargement liste ----------
+    async function loadList(q = '') {
       const url = q ? `/api/ebooks?q=${encodeURIComponent(q)}` : '/api/ebooks';
-      const r = await fetch(url, { credentials: 'include' });
-      const rows = await r.json();
-
-      const tbody = $('#grid tbody');
-      tbody.innerHTML = '';
-
-      if (!Array.isArray(rows) || !rows.length) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td colspan="4" class="muted">Aucun résultat.</td>`;
-        tbody.appendChild(tr);
-        return;
-      }
-
-      rows.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${escapeHtml(row.title || '')}</td>
-          <td>${escapeHtml(row.author || '')}</td>
-          <td class="muted">${(row.created_at || '').toString().slice(0, 16)}</td>
-          <td class="actions">
-            <!-- (Édition à venir) -->
-            <button class="btn" data-del="${row.id}">Supprimer</button>
+      const res = await fetch(url, { credentials: 'include' });
+      const rows = await res.json();
+      const tbody = document.getElementById('rows');
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td>${r.title || ''}</td>
+          <td>${r.author || ''}</td>
+          <td>${(r.created_at || '').slice(0,16).replace('T',' ')}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-danger" data-del="${r.id}">Supprimer</button>
           </td>
-        `;
-        tbody.appendChild(tr);
-      });
+        </tr>
+      `).join('');
 
-      // Wire des boutons supprimer
-      $$('[data-del]').forEach(btn => {
+      // suppression
+      tbody.querySelectorAll('[data-del]').forEach(btn => {
         btn.addEventListener('click', async () => {
-          const id = btn.getAttribute('data-del');
           if (!confirm('Supprimer cet ebook ?')) return;
-          const r = await fetch(`/api/ebooks/${id}`, {
-            method: 'DELETE',
-            credentials: 'include'
-          });
-          const json = await r.json();
-          if (!r.ok || !json.ok) {
-            alert('Suppression impossible');
-            return;
-          }
-          await loadEbooks($('#q').value.trim());
+          const id = btn.getAttribute('data-del');
+          const r = await fetch('/api/ebooks/' + id, { method: 'DELETE', credentials: 'include' });
+          const j = await r.json();
+          if (j.ok) loadList(q);
         });
       });
     }
 
-    // ----------- 5) Recherche
-    $('#btnSearch').addEventListener('click', () => {
-      loadEbooks($('#q').value.trim());
+    // Recherche
+    document.getElementById('searchForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      loadList(document.getElementById('q').value.trim());
     });
-    $('#q').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        loadEbooks($('#q').value.trim());
-      }
-    });
-
-    function escapeHtml(s) {
-      return (s ?? '').toString()
-        .replaceAll('&','&amp;')
-        .replaceAll('<','&lt;')
-        .replaceAll('>','&gt;')
-        .replaceAll('"','&quot;')
-        .replaceAll("'",'&#39;');
-    }
   </script>
 </body>
 </html>
