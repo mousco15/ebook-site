@@ -190,3 +190,23 @@ main { position: relative; z-index: 1; }
 body::before { 
   background: rgba(255,255,255,0.30) !important; 
 }
+/* === Fix: images trop zoomées sur la page publique === */
+.ebook-list img,
+.card img,
+.book-card img,
+.ebook-card img,
+img.cover,
+img.card-img,
+img.thumb {
+  display: block;
+  width: 100%;
+  height: auto !important;   /* annule toute hauteur fixe */
+  object-fit: contain;       /* ne coupe plus l’image */
+}
+/* (Optionnel) limite visuelle pour éviter les couvertures géantes */
+.ebook-list img,
+.card img,
+.book-card img,
+.ebook-card img {
+  max-height: 420px;         /* ajuste si tu veux plus/moins haut */
+}
