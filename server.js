@@ -30,13 +30,12 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'change-me',
   resave: false,
   saveUninitialized: false,
-  proxy: true, // IMPORTANT derrière proxy pour les cookies "secure"
   cookie: {
     httpOnly: true,
-    // MODE TEST compatible partout : quand tout marche, passe à { sameSite:'none', secure:true }
+    // Mode compatible (TEST). Quand tout marche bien en HTTPS partout,
+    // tu pourras passer à: sameSite: 'none', secure: true
     sameSite: 'lax',
     secure: false,
-    path: '/',                // cookie valable sur tout le site
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
   }
 }));
@@ -98,18 +97,8 @@ app.get('/api/me', (req, res) => {
 
 app.post('/api/logout', (req, res) => {
   req.session.destroy(() => {
-    res.clearCookie('sid', { path: '/' });
+    res.clearCookie('sid');
     return res.json({ ok: true });
-  });
-});
-
-// ---- DEBUG TEMP (retire-le quand tout marche) ----
-app.get('/api/debug-session', (req, res) => {
-  res.json({
-    gotCookieHeader: !!req.headers.cookie,
-    cookieHeader: req.headers.cookie || null,
-    sessionID: req.sessionID || null,
-    sessionUser: req.session?.user || null
   });
 });
 
@@ -120,12 +109,11 @@ const supabase = createClient(
 );
 const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'ebook-site2';
 
-// Multer en mémoire (pas d’écriture disque Render)
-const storage = multer({
+// ✅ Multer correct : un SEUL middleware avec memoryStorage
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 } // 50 Mo
 });
-const upload = multer({ storage });
 
 async function uploadToSupabase(file, destPath) {
   const { error } = await supabase
@@ -136,7 +124,11 @@ async function uploadToSupabase(file, destPath) {
       cacheControl: '31536000',
       upsert: false
     });
-  if (error) throw error;
+
+  if (error) {
+    console.error('Supabase upload error:', error);
+    throw error;
+  }
 
   const { data: pub } = supabase
     .storage
@@ -184,7 +176,7 @@ app.post(
         return res.status(400).json({ error: 'Titre, auteur et fichier PDF obligatoires.' });
       }
 
-      const sanitize = (n) => n.replace(/[^\w\.-]/g, '_');
+      const sanitize = (n) => n.replace(/[^\w.\-]/g, '_');
       const now = Date.now();
       let coverUrl = null;
       let pdfUrl = null;
@@ -236,7 +228,7 @@ app.put(
       const coverFile = req.files?.cover?.[0];
       const pdfFile = req.files?.pdf?.[0];
 
-      const sanitize = (n) => n.replace(/[^\w\.-]/g, '_');
+      const sanitize = (n) => n.replace(/[^\w.\-]/g, '_');
       const fields = [];
       const params = [];
 
