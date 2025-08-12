@@ -1,71 +1,100 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Détail du livre</title>
-  <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/custom.css?v=8">
+
+  <link rel="stylesheet" href="custom.css?v=5">
   <style>
-    .card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 6px 22px rgba(0,0,0,.08); }
-    .cover-lg { width:100%; max-width:520px; height:auto; border-radius:8px; display:block; margin:0 auto 16px; }
-    .btn { display:inline-block; padding:10px 16px; border-radius:8px; background:#0d6efd; color:#fff; text-decoration:none; }
-    .btn-outline { background:transparent; color:#0d6efd; border:1px solid #0d6efd; }
-    .actions { display:flex; gap:10px; flex-wrap:wrap; margin:12px 0; }
-    .viewer { margin-top:14px; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; }
-    .viewer iframe { width:100%; height:75vh; border:0; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    .hero { background: rgba(255,255,255,.92); border-radius: 14px; padding: 18px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+    .row { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+    .cover { width: 100%; height: 400px; object-fit: cover; border-radius: 10px; }
+    .btn { display: inline-block; padding: 10px 14px; border-radius: 8px; background: #0d6efd; color: #fff; text-decoration: none; }
+    .btn.secondary { background: #6c757d; }
+    iframe { width: 100%; height: 70vh; border: none; border-radius: 12px; background: #fff; }
+    @media (max-width: 860px) { .row { grid-template-columns: 1fr; } .cover{height:300px;} }
   </style>
 </head>
 <body>
-  <main class="container" style="padding-top:16px">
-    <p><a class="btn btn-outline" href="/">&larr; Retour</a></p>
-    <div id="ebookDetail" class="card">Chargement…</div>
+  <main class="container">
+    <p><a href="index.html">← Retour</a></p>
+
+    <section class="hero">
+      <div class="row">
+        <div>
+          <img id="cover" class="cover" alt="">
+        </div>
+        <div>
+          <h1 id="title"></h1>
+          <p id="author" style="color:#555"></p>
+          <p id="desc"></p>
+          <p id="meta" style="opacity:.8"></p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px">
+            <a id="download" class="btn" href="#" target="_blank" rel="noopener">Télécharger le PDF</a>
+            <a id="open" class="btn secondary" href="#" target="_blank" rel="noopener">Ouvrir dans un nouvel onglet</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="margin-top:18px" id="viewerWrap" class="hero">
+      <h3 style="margin-top:0">Aperçu</h3>
+      <iframe id="viewer" src=""></iframe>
+    </section>
   </main>
 
-  <script>
-  (async () => {
-    const params = new URLSearchParams(location.search);
-    const id = Number(params.get('id'));
-    const box = document.getElementById('ebookDetail');
-
-    if (!id) { box.innerHTML = "<p>Identifiant manquant.</p>"; return; }
-
-    try {
-      const res = await fetch('/api/ebooks/' + id);
-      if (!res.ok) { box.innerHTML = "<p>Impossible de charger ce livre.</p>"; return; }
-      const e = await res.json();
-
-      const cover = e.cover_path ? `<img class="cover-lg" src="${e.cover_path}" alt="Couverture">` : "";
-      const meta  = `
-        <h1>${e.title || 'Sans titre'}</h1>
-        <p><strong>Auteur :</strong> ${e.author || '-'}</p>
-        ${e.language ? `<p><strong>Langue :</strong> ${e.language}</p>` : ''}
-        ${e.categories ? `<p><strong>Catégories :</strong> ${e.categories}</p>` : ''}
-        ${e.description ? `<p>${e.description}</p>` : ''}
-      `;
-
-      const actions = e.pdf_path ? `
-        <div class="actions">
-          <a class="btn" href="${e.pdf_path}" target="_blank" rel="noopener">📖 Ouvrir dans un nouvel onglet</a>
-          <a class="btn btn-outline" href="${e.pdf_path}" download>⬇️ Télécharger le PDF</a>
-        </div>
-      ` : '<p class="muted">PDF indisponible.</p>';
-
-      const viewer = e.pdf_path ? `
-        <div class="viewer">
-          <iframe src="${e.pdf_path}#view=FitH" title="Lecteur PDF"></iframe>
-        </div>
-        <p class="muted" style="margin-top:8px">
-          Si le lecteur intégré ne s’affiche pas, utilisez “Ouvrir dans un nouvel onglet”.
-        </p>
-      ` : '';
-
-      box.innerHTML = `${cover}${meta}${actions}${viewer}`;
-    } catch (err) {
-      console.error(err);
-      box.innerHTML = "<p>Erreur inattendue.</p>";
+  <script type="module">
+    function qs(id){ return document.getElementById(id); }
+    function getId(){
+      const u = new URL(location.href);
+      return u.searchParams.get('id');
     }
-  })();
+
+    async function load() {
+      const id = Number(getId());
+      if (!id) { location.href = 'index.html'; return; }
+
+      try {
+        // L’API actuelle renvoie la liste → on filtre localement
+        const res = await fetch('/api/ebooks');
+        const all = await res.json();
+        const e = all.find(x => Number(x.id) === id);
+        if (!e) { qs('viewerWrap').innerHTML = '<p>Introuvable.</p>'; return; }
+
+        qs('title').textContent = e.title || '';
+        qs('author').textContent = e.author ? 'par ' + e.author : '';
+        qs('desc').textContent = e.description || '';
+        qs('meta').textContent = (e.language ? ('Langue : ' + e.language) : '')
+          + (e.price_cents ? (' · Prix : ' + (Number(e.price_cents)/100).toFixed(2) + ' €') : '');
+
+        if (e.cover_path) {
+          qs('cover').src = e.cover_path;
+          qs('cover').alt = e.title || '';
+        } else {
+          qs('cover').style.display = 'none';
+        }
+
+        if (e.pdf_path) {
+          // Boutons
+          qs('download').href = e.pdf_path;
+          qs('open').href = e.pdf_path;
+
+          // Lecteur intégré (Google viewer sûr, n’affecte pas tes fichiers)
+          const gv = 'https://drive.google.com/viewerng/viewer?embedded=true&url='
+                     + encodeURIComponent(e.pdf_path);
+          qs('viewer').src = gv;
+        } else {
+          qs('viewerWrap').innerHTML = '<p>PDF non disponible.</p>';
+        }
+      } catch (err) {
+        console.error(err);
+        qs('viewerWrap').innerHTML = '<p>Erreur de chargement.</p>';
+      }
+    }
+
+    load();
   </script>
 </body>
 </html>
