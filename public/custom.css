@@ -208,5 +208,5 @@ img.thumb {
 .card img,
 .book-card img,
 .ebook-card img {
-  max-height: 420px;         /* ajuste si tu veux plus/moins haut */
+  max-height: 320px;         /* ajuste si tu veux plus/moins haut */
 }
