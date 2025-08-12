@@ -1,96 +1,80 @@
-// public/main.js — liste, filtre, pagination
+/* main.js — liste publique avec filtres + pagination + styles conservés */
 
-const listEl = document.getElementById('ebook-list');
-const pagerEl = document.getElementById('pager');
-const searchEl = document.getElementById('search');
-const languageEl = document.getElementById('language');
-const categoryEl = document.getElementById('category');
+const $ = (sel) => document.querySelector(sel);
 
-let state = {
-  page: 1,
-  pageSize: 6,
-  q: '',
-  language: '',
-  category: ''
-};
+async function loadEbooks({ q = '', lang = '', cat = '', page = 1, pageSize = 6 } = {}) {
+  const list = $('#ebook-list');
+  const pagerPrev = $('#pager-prev');
+  const pagerNext = $('#pager-next');
+  const countSpan = $('#count');
 
-function escapeHtml(s) {
-  return (s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-}
-
-async function loadEbooks() {
   try {
-    const params = new URLSearchParams({
-      page: String(state.page),
-      pageSize: String(state.pageSize),
-      q: state.q || '',
-      language: state.language || '',
-      category: state.category || ''
-    });
-    const res = await fetch(`/api/ebooks?${params.toString()}`, { credentials: 'include' });
-    const { data, total, page, pageSize } = await res.json();
+    list.innerHTML = '<div class="loading">Chargement…</div>';
+    const params = new URLSearchParams({ q, lang, cat, page, pageSize });
+    const res = await fetch(`/api/ebooks?${params.toString()}`);
+    const data = await res.json();
 
-    // Cartes
-    listEl.innerHTML = data.map(e => `
+    const items = data.items || [];
+    countSpan.textContent = data.total || 0;
+
+    if (!items.length) {
+      list.innerHTML = '<p>Aucun livre pour l’instant.</p>';
+      pagerPrev.disabled = true;
+      pagerNext.disabled = true;
+      return;
+    }
+
+    list.innerHTML = items.map(e => `
       <article class="card">
-        <div class="card-cover">
-          ${e.cover_path ? `<img src="${escapeHtml(e.cover_path)}" alt="${escapeHtml(e.title || '')}">`
-                         : `<div class="no-cover">Aucune couverture</div>`}
-        </div>
-        <div class="card-body">
-          <h3 class="card-title">${escapeHtml(e.title || '')}</h3>
-          <p class="card-author">${escapeHtml(e.author || '')}</p>
-          ${e.description ? `<p class="card-desc">${escapeHtml(e.description)}</p>` : ''}
-          <div class="card-actions">
-            ${e.pdf_path ? `<a class="btn" href="${escapeHtml(e.pdf_path)}" target="_blank" rel="noopener">Voir</a>` : ''}
+        ${e.cover_path ? `<img class="cover" src="${e.cover_path}" alt="couverture">` : `<div class="cover placeholder"></div>`}
+        <div class="info">
+          <h3>${e.title || ''}</h3>
+          <p class="author">${e.author || ''}</p>
+          ${e.description ? `<p class="desc">${e.description}</p>` : ''}
+          <div class="actions">
+            <a class="btn" href="/ebook?id=${e.id}">Voir</a>
           </div>
         </div>
       </article>
     `).join('');
 
-    // Pagination
-    const pages = Math.max(Math.ceil((total || 0) / pageSize), 1);
-    pagerEl.innerHTML = `
-      <button class="btn min" ${page <= 1 ? 'disabled' : ''} data-go="first">«</button>
-      <button class="btn" ${page <= 1 ? 'disabled' : ''} data-go="prev">Précédent</button>
-      <span class="page-indicator">Page ${page} / ${pages}</span>
-      <button class="btn" ${page >= pages ? 'disabled' : ''} data-go="next">Suivant</button>
-      <button class="btn min" ${page >= pages ? 'disabled' : ''} data-go="last">»</button>
-    `;
+    pagerPrev.disabled = data.page <= 1;
+    pagerNext.disabled = data.page >= data.pages;
 
-    pagerEl.querySelectorAll('button[data-go]').forEach(b => {
-      b.addEventListener('click', () => {
-        const action = b.getAttribute('data-go');
-        if (action === 'first') state.page = 1;
-        if (action === 'prev') state.page = Math.max(state.page - 1, 1);
-        if (action === 'next') state.page = state.page + 1;
-        if (action === 'last') state.page = pages;
-        loadEbooks();
-      });
-    });
+    pagerPrev.onclick = () => {
+      if (data.page > 1) {
+        const s = readSearch();
+        loadEbooks({ ...s, page: data.page - 1, pageSize });
+      }
+    };
+    pagerNext.onclick = () => {
+      if (data.page < data.pages) {
+        const s = readSearch();
+        loadEbooks({ ...s, page: data.page + 1, pageSize });
+      }
+    };
 
   } catch (err) {
     console.error(err);
-    listEl.innerHTML = `<div class="error">Erreur de chargement.</div>`;
+    list.innerHTML = '<p>Erreur de chargement.</p>';
+    if (pagerPrev) pagerPrev.disabled = true;
+    if (pagerNext) pagerNext.disabled = true;
   }
 }
 
-// Filtres
-searchEl?.addEventListener('input', (e) => {
-  state.q = e.target.value.trim();
-  state.page = 1;
-  loadEbooks();
-});
-languageEl?.addEventListener('change', (e) => {
-  state.language = e.target.value.trim();
-  state.page = 1;
-  loadEbooks();
-});
-categoryEl?.addEventListener('input', (e) => {
-  state.category = e.target.value.trim();
-  state.page = 1;
-  loadEbooks();
-});
+function readSearch() {
+  return {
+    q: ($('#search')?.value || '').trim(),
+    lang: ($('#lang')?.value || '').trim(),
+    cat: ($('#cat')?.value || '').trim(),
+  };
+}
 
-// Première charge
-loadEbooks();
+window.addEventListener('DOMContentLoaded', () => {
+  // champs de filtre s’ils existent dans la page
+  $('#search')?.addEventListener('input', () => loadEbooks({ ...readSearch(), page: 1 }));
+  $('#lang')?.addEventListener('change', () => loadEbooks({ ...readSearch(), page: 1 }));
+  $('#cat')?.addEventListener('change', () => loadEbooks({ ...readSearch(), page: 1 }));
+
+  loadEbooks({ ...readSearch(), page: 1 });
+});
