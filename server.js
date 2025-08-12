@@ -32,7 +32,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    // Compatible mobiles (Safari iOS) : on force lax/secure:false
+    // Compatibilité mobile : on reste en lax + secure:false côté HTTP(s) Render
     sameSite: 'lax',
     secure: false,
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
@@ -103,17 +103,17 @@ app.post('/api/logout', (req, res) => {
 
 // ---------- Supabase Storage ----------
 const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
+  process.env.SUPABASE_URL,          // ex: https://xxxxx.supabase.co
+  process.env.SUPABASE_SERVICE_KEY   // **service_role** (pas la anon)
 );
 const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'ebook-site2';
 
-// Multer en mémoire (pas d’écriture disque Render)
-const storage = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 } // 50 Mo
+// ✅ Multer : mémoire (bonne API)
+const storage = multer.memoryStorage();             // <- IMPORTANT: avec ()
+const upload  = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 }           // 50 Mo
 });
-const upload = multer({ storage });
 
 async function uploadToSupabase(file, destPath) {
   const { error } = await supabase
@@ -124,7 +124,11 @@ async function uploadToSupabase(file, destPath) {
       cacheControl: '31536000',
       upsert: false
     });
-  if (error) throw error;
+
+  if (error) {
+    console.error('Supabase upload error:', error);
+    throw error;
+  }
 
   const { data: pub } = supabase
     .storage
@@ -157,7 +161,7 @@ app.get('/api/ebooks', (req, res) => {
   );
 });
 
-// ➜ DÉTAIL D’UN EBOOK (pour la page /ebook.html)
+// Détail d’un ebook (pour /ebook.html?id=...)
 app.get('/api/ebooks/:id', (req, res) => {
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ error: 'Identifiant invalide' });
@@ -178,16 +182,16 @@ app.post(
     try {
       const { title, author, description, language, price_cents, categories } = req.body;
       const coverFile = req.files?.cover?.[0];
-      const pdfFile = req.files?.pdf?.[0];
+      const pdfFile   = req.files?.pdf?.[0];
 
       if (!title || !author || !pdfFile) {
         return res.status(400).json({ error: 'Titre, auteur et fichier PDF obligatoires.' });
       }
 
-      const sanitize = (n) => n.replace(/[^\w\.-]/g, '_');
+      const sanitize = (n) => n.replace(/[^\w.\-]/g, '_');
       const now = Date.now();
       let coverUrl = null;
-      let pdfUrl = null;
+      let pdfUrl   = null;
 
       if (coverFile) {
         const dest = `covers/${now}-${sanitize(coverFile.originalname)}`;
@@ -234,9 +238,9 @@ app.put(
       const id = Number(req.params.id);
       const { title, author, description, language, price_cents, categories } = req.body;
       const coverFile = req.files?.cover?.[0];
-      const pdfFile = req.files?.pdf?.[0];
+      const pdfFile   = req.files?.pdf?.[0];
 
-      const sanitize = (n) => n.replace(/[^\w\.-]/g, '_');
+      const sanitize = (n) => n.replace(/[^\w.\-]/g, '_');
       const fields = [];
       const params = [];
 
