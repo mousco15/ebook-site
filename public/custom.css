@@ -1,216 +1,141 @@
-/* ======== Fond de page ======== */
-html, body {
-  height: 100%;
-}
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  color: #111;
-  background: url('A_geometric_digital_illustration.png') no-repeat center center fixed;
-  background-size: cover;
-  /* léger voile pour la lisibilité du texte */
-  position: relative;
-}
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: rgba(255,255,255,0.65);
-  pointer-events: none;
+/* custom.css — styles publics/admin */
+
+:root{
+  --bg: #f7f8fb;
+  --fg: #111;
+  --muted:#6b7280;
+  --primary:#2563eb;
+  --card:#ffffffee;
+  --radius:14px;
 }
 
-/* ======== Mise en page générale ======== */
-.container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 24px;
+html,body{
+  margin:0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+  color:var(--fg);
+  background: var(--bg);
 }
 
-h1, h2, h3 {
-  margin: 0 0 16px;
-  line-height: 1.2;
+/* grille des livres */
+.ebooks-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap:16px;
+  align-items: stretch;
 }
 
-/* Titre principal (ex: Ajouter / Gérer les Ebooks) */
-.page-title {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-size: clamp(28px, 4vw, 44px);
-  font-weight: 800;
-}
-
-/* Petit pictogramme à gauche du titre (optionnel) */
-.page-title .badge {
-  display: inline-flex;
-  width: 28px; height: 28px;
-  border-radius: 6px;
-  background: #2563eb20;
-  border: 1px solid #2563eb40;
-  justify-content: center; align-items: center;
-}
-
-/* Bandeau d’info “Connecté en tant que …” + bouton */
-.topbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 24px;
-  margin: 12px 0 24px;
-  font-size: 15px;
-}
-.topbar .me {
-  font-weight: 700;
-}
-
-/* ======== Formulaires ======== */
-form {
-  display: grid;
-  gap: 14px;
-}
-
-label {
-  font-size: 14px;
-  color: #333;
-}
-
-input[type="text"],
-input[type="email"],
-input[type="number"],
-input[type="password"],
-textarea,
-select {
-  width: 100%;
-  padding: 12px 14px;
-  border: 1px solid #cfd4dc;
-  border-radius: 10px;
-  background: #fff;
-  outline: none;
-  transition: box-shadow .15s ease, border-color .15s ease;
-  font-size: 15px;
-}
-input:focus,
-textarea:focus,
-select:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37,99,235,.15);
-}
-
-/* Fichiers */
-input[type="file"] {
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px dashed #cfd4dc;
-  background: #fff;
-}
-
-/* ======== Boutons ======== */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 10px 18px;
-  border-radius: 12px;
-  border: 1px solid transparent;
-  cursor: pointer;
-  font-weight: 700;
-  text-decoration: none;
-  user-select: none;
-  transition: transform .06s ease, filter .15s ease, background .15s ease;
-}
-
-.btn:active { transform: translateY(1px); }
-
-.btn-primary {
-  background: #2563eb;
-  color: #fff;
-}
-.btn-primary:hover { filter: brightness(1.05); }
-
-.btn-outline {
-  background: transparent;
-  border-color: #2563eb;
-  color: #2563eb;
-}
-.btn-outline:hover {
-  background: #2563eb10;
-}
-
-/* Bouton “Se déconnecter” aligné à droite sur desktop */
-.actions {
-  margin-left: auto;
-}
-
-/* ======== Cartes/sections ======== */
-.card {
-  background: #ffffffcc; /* blanc avec un peu de transparence */
-  border: 1px solid #e8ecf2;
-  border-radius: 14px;
-  padding: 18px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.04);
-}
-
-/* ======== Table/listes ======== */
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-  border-radius: 14px;
+/* carte */
+.card{
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgba(0,0,0,.08);
   overflow: hidden;
-}
-.table th, .table td {
-  padding: 12px 14px;
-  border-bottom: 1px solid #eef2f6;
-  text-align: left;
-  font-size: 14px;
-}
-.table th {
-  background: #f6f8fb;
-  font-weight: 700;
+  display:flex;
+  flex-direction: column;
 }
 
-/* ======== Grille responsive ======== */
-.grid {
-  display: grid;
-  gap: 18px;
-}
-@media (min-width: 900px) {
-  .grid.cols-2 { grid-template-columns: 1fr 1fr; }
+.card-cover{
+  width:100%;
+  aspect-ratio: 3/4;
+  background:#eef1f6;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
 }
 
-/* ======== Petits correctifs ======== */
-a { color: #1d4ed8; }
-a:hover { text-decoration: underline; }
+.card-cover img{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  /* Légère réduction visuelle (moins “zoomé”) */
+  transform: scale(0.94);
+}
 
-/* Évite que le fond masque du contenu sticky */
-main { position: relative; z-index: 1; }
-/* Adoucir le voile si le fond paraît flou */
-body::before { 
-  background: rgba(255,255,255,0.30) !important; 
+.no-cover{
+  color:var(--muted);
+  font-size:.9rem;
 }
-/* === Fix: images trop zoomées sur la page publique === */
-.ebook-list img,
-.card img,
-.book-card img,
-.ebook-card img,
-img.cover,
-img.card-img,
-img.thumb {
-  display: block;
-  width: 100%;
-  height: auto !important;   /* annule toute hauteur fixe */
-  object-fit: contain;       /* ne coupe plus l’image */
+
+.card-body{
+  padding:14px 14px 16px;
+  display:flex;
+  flex-direction: column;
+  gap:8px;
 }
-/* (Optionnel) limite visuelle pour éviter les couvertures géantes */
-.ebook-list img,
-.card img,
-.book-card img,
-.ebook-card img {
-  max-height: 320px;         /* ajuste si tu veux plus/moins haut */
+
+.card-title{
+  font-size: 1.02rem;
+  line-height: 1.25;
+  margin:0;
 }
-.card { background:#fff; border-radius:12px; padding:14px; margin:10px 0; box-shadow:0 2px 10px rgba(0,0,0,.04); }
-.card .cover { width:100%; height:auto; display:block; border-radius:10px; }
-.btn { display:inline-block; padding:8px 14px; border-radius:8px; background:#0d6efd; color:#fff; text-decoration:none; }
-.btn:hover { opacity:.9; }
+
+.card-author{
+  margin:0;
+  color:var(--muted);
+  font-size:.95rem;
+}
+
+.card-desc{
+  color:#374151;
+  font-size:.95rem;
+  line-height:1.45;
+  margin:.2rem 0 0;
+}
+
+.card-actions{
+  margin-top:auto;
+  display:flex;
+  gap:8px;
+}
+
+.btn{
+  appearance:none;
+  border:1px solid #d1d5db;
+  background:#fff;
+  color:#111;
+  border-radius:10px;
+  padding:8px 12px;
+  cursor:pointer;
+  font-weight:600;
+}
+.btn:hover{ background:#f3f4f6; }
+.btn.min{ padding:6px 10px; }
+
+.page-indicator{
+  display:inline-block;
+  padding:6px 8px;
+  color:var(--muted);
+}
+
+/* bandeau de recherche */
+.filters{
+  display:grid;
+  grid-template-columns: 1fr 180px 1fr;
+  gap:10px;
+  margin:14px 0 18px;
+}
+
+input[type="text"], select{
+  border:1px solid #d1d5db;
+  background:#fff;
+  border-radius:10px;
+  padding:10px 12px;
+  font-size:1rem;
+}
+
+/* petit */
+@media (max-width: 640px){
+  .filters{
+    grid-template-columns: 1fr;
+  }
+}
+
+/* messages */
+.error{
+  padding:14px;
+  background:#fee2e2;
+  color:#991b1b;
+  border:1px solid #fecaca;
+  border-radius:10px;
+}
