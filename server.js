@@ -97,8 +97,57 @@ app.post('/api/logout', (req, res) => {
 // ---------- API Ebooks (DB = table public.ebooks) ----------
 
 // Liste / recherche
+// Liste / recherche avec filtres + pagination (Supabase)
 app.get('/api/ebooks', async (req, res) => {
   try {
+    // paramètres
+    const q         = (req.query.q || '').trim();
+    const language  = (req.query.language || '').trim();   // ex: 'fr' ou ''
+    const category  = (req.query.category || '').trim();   // mot clé dans categories
+    const page      = Math.max(1, parseInt(req.query.page || '1', 10));
+    const pageSize  = Math.min(30, Math.max(1, parseInt(req.query.pageSize || '8', 10)));
+    const from      = (page - 1) * pageSize;
+    const to        = from + pageSize - 1;
+
+    let query = supabase
+      .from('ebooks')
+      .select('*', { count: 'exact' })
+      .order('id', { ascending: false })
+      .range(from, to);
+
+    if (q) {
+      // recherche multi-champs
+      query = query.or(
+        `title.ilike.%${q}%,author.ilike.%${q}%,description.ilike.%${q}%,categories.ilike.%${q}%`
+      );
+    }
+    if (language && language !== 'all') {
+      query = query.eq('language', language);
+    }
+    if (category && category !== 'all') {
+      query = query.ilike('categories', `%${category}%`);
+    }
+
+    const { data, count, error } = await query;
+    if (error) return res.status(500).json({ error: error.message });
+
+    const total    = count || 0;
+    const hasPrev  = page > 1;
+    const hasNext  = to + 1 < total;
+
+    return res.json({
+      items: data || [],
+      total,
+      page,
+      pageSize,
+      hasPrev,
+      hasNext
+    });
+  } catch (e) {
+    console.error('List ebooks error:', e);
+    return res.status(500).json({ error: 'server' });
+  }
+});
     const q = (req.query.q || '').trim();
     let query = supabase.from('ebooks').select('*').order('id', { ascending: false });
     if (q) {
