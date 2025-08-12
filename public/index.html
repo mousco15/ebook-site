@@ -1,104 +1,65 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ma Bibliothèque</title>
-  <!-- On garde TON ancien style -->
-  <link rel="stylesheet" href="/styles.css">
-  <!-- Et on garde custom.css si tu l’utilises pour le fond -->
-  <link rel="stylesheet" href="/custom.css?v=8">
+
+  <!-- Garde ton CSS existant -->
+  <link rel="stylesheet" href="custom.css?v=5">
+  <style>
+    /* Petits styles sûrs pour la grille d’ebooks (n’affecte pas tes autres pages) */
+    .container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .card { background: rgba(255,255,255,.9); border-radius: 12px; padding: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+    .cover { width: 100%; height: 300px; object-fit: cover; border-radius: 8px; }
+    .card h3 { margin: 10px 0 6px; font-size: 18px; }
+    .author { color: #555; margin: 0 0 10px; }
+    .btn { display: inline-block; padding: 10px 14px; border-radius: 8px; background: #0d6efd; color: #fff; text-decoration: none; }
+    .searchbar { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid #ddd; margin: 18px 0 24px; }
+    footer { text-align: center; opacity: .75; padding: 24px 0; }
+  </style>
 </head>
 <body>
-
   <header class="container">
     <h1>📚 Ma Bibliothèque</h1>
-    <input type="text" id="search" placeholder="Rechercher un livre…">
+    <input id="search" class="searchbar" type="text" placeholder="Rechercher un livre…">
   </header>
 
   <main class="container">
-    <div id="ebook-list" class="grid"></div>
+    <div id="ebook-list" class="grid" aria-live="polite"></div>
   </main>
 
-  <footer class="container">
-    <p>© 2025 Ma Bibliothèque</p>
-  </footer>
+  <footer>© 2025 Ma Bibliothèque</footer>
 
-  <script>
-    <script>
-  // ====== CONFIG (à adapter juste ici) ======
-  const SUPABASE_URL = 'https://TON-PROJET.supabase.co'; // <- remplace par ton Project URL
-  const SUPABASE_BUCKET = 'ebook-site2';                  // ton bucket
-  // =========================================
-
-  // Transforme un chemin "pdfs/xxx.pdf" ou "covers/xxx.jpg" en URL publique complète
-  function toPublicUrl(pathOrUrl) {
-    if (!pathOrUrl) return '';
-    if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl; // déjà une URL complète
-    const base = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/`;
-    return base + String(pathOrUrl).replace(/^\/+/, '');
-  }
-
-  async function loadBooks() {
-    try {
-      const q = new URLSearchParams(location.search).get('q') || '';
-      const res = await fetch('/api/ebooks' + (q ? `?q=${encodeURIComponent(q)}` : ''));
-      const items = await res.json();
-
-      const list = document.getElementById('results');
-      if (!list) return;
-      list.innerHTML = '';
-
-      items.forEach(b => {
-        const coverUrl = toPublicUrl(b.cover_path);
-        const pdfUrl   = toPublicUrl(b.pdf_path);
-
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <div class="card-body">
-            ${coverUrl ? `<img class="cover" src="${coverUrl}" alt="${b.title || ''}">` : ''}
-            <h3 class="title">${b.title || ''}</h3>
-            <div class="author">${b.author || ''}</div>
-            ${b.description ? `<p class="desc">${b.description}</p>` : ''}
-            <div class="actions">
-              ${pdfUrl ? `
-                <a class="btn" href="${pdfUrl}" target="_blank" rel="noopener">Voir</a>
-                <a class="btn secondary" href="${pdfUrl}" download>Télécharger</a>
-              ` : ''}
-            </div>
-          </div>
-        `;
-        list.appendChild(card);
-      });
-    } catch (e) {
-      console.error('Erreur chargement ebooks:', e);
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', loadBooks);
-</script>
+  <!-- IMPORTANT : ne colle surtout pas de ``` dans le fichier. Le JS doit être dans <script> -->
+  <script type="module">
+    async function loadEbooks(q = '') {
+      const list = document.getElementById('ebook-list');
+      try {
+        const res = await fetch('/api/ebooks' + (q ? ('?q=' + encodeURIComponent(q)) : ''));
+        const data = await res.json();
 
         list.innerHTML = data.map(e => `
-          <div class="card">
-            ${e.cover_path ? `<img src="${e.cover_path}" alt="${e.title || ''}">` : ''}
-            <div class="p">
-              <h3>${e.title || ''}</h3>
-              <div class="muted">${e.author || ''}</div>
-              <!-- IMPORTANT : on envoie l'id -->
-              <a class="btn" href="/ebook.html?id=${e.id}">Voir</a>
-            </div>
-          </div>
+          <article class="card">
+            ${e.cover_path ? `<img class="cover" src="${e.cover_path}" alt="${e.title || ''}">` : ''}
+            <h3>${e.title || ''}</h3>
+            <p class="author">${e.author || ''}</p>
+            <a class="btn" href="ebook.html?id=${encodeURIComponent(e.id)}">Voir</a>
+          </article>
         `).join('');
       } catch (err) {
         console.error(err);
-        document.getElementById('ebook-list').innerHTML = '<p>Erreur de chargement.</p>';
+        list.innerHTML = '<p>Erreur de chargement.</p>';
       }
     }
 
-    document.getElementById('search').addEventListener('input', (e) => {
-      loadEbooks(e.target.value.trim());
-    });
+    const search = document.getElementById('search');
+    if (search) {
+      search.addEventListener('input', (e) => {
+        loadEbooks(e.target.value.trim());
+      });
+    }
 
     loadEbooks();
   </script>
