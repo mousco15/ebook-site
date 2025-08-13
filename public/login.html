@@ -2,45 +2,44 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <title>Connexion Administrateur</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="/custom.css?v=3">
+  <title>Connexion admin</title>
+  <link rel="stylesheet" href="/custom.css?v=10">
+  <link rel="preload" as="image" href="/hero.jpg">
 </head>
-<body class="page-login">
-  <main class="container">
-    <h1>🔒 Connexion Administrateur</h1>
-
-    <form id="loginForm" class="form-card">
-      <div class="row">
-        <input id="email" type="email" placeholder="Email" required>
-        <input id="password" type="password" placeholder="Mot de passe" required>
-      </div>
-      <button type="submit" class="btn-primary">Se connecter</button>
+<body>
+  <main class="container card" style="max-width:520px;margin-top:40px">
+    <h1>Connexion</h1>
+    <form id="loginForm">
+      <label>Email</label>
+      <input name="email" type="email" required>
+      <label>Mot de passe</label>
+      <input name="password" type="password" required>
+      <button type="submit">Se connecter</button>
     </form>
-
-    <p><a href="/index.html">← Retour à la boutique</a></p>
+    <p style="margin-top:10px"><a href="/">← Retour au site</a></p>
   </main>
 
   <script>
-  document.getElementById('loginForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value.trim();
-
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',                          // IMPORTANT
-      body: JSON.stringify({ email, password })
+    const form = document.getElementById('loginForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const body = { email: fd.get('email'), password: fd.get('password') };
+      try {
+        const r = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify(body),
+          credentials: 'include'
+        });
+        const j = await r.json().catch(()=> ({}));
+        if (!r.ok || j.ok !== true) throw new Error(j.error || 'login');
+        location.href = '/admin.html';
+      } catch {
+        alert('Identifiants invalides.');
+      }
     });
-
-    const data = await res.json();
-    if (data.ok) {
-      location.href = '/admin.html';
-    } else {
-      alert('Identifiants incorrects');
-    }
-  });
   </script>
 </body>
 </html>
