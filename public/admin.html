@@ -1,234 +1,164 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin — Ma Bibliothèque</title>
-
-  <!-- On garde ton CSS existant -->
-  <link rel="stylesheet" href="/custom.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — Ebooks</title>
+  <link rel="stylesheet" href="/custom.css?v=10">
+  <link rel="preload" as="image" href="/hero.jpg">
 </head>
 <body>
   <header class="container">
-    <h1>Ajouter / Gérer les Ebooks</h1>
-
-    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-      <span>Connecté en tant que <strong id="whoami">...</strong></span>
-      <button id="logoutBtn" type="button">Se déconnecter</button>
-      <a href="/" style="margin-left:auto">← Retour à la boutique</a>
+    <h1>Admin — Ebooks</h1>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span>Connecté : <strong id="whoami">…</strong></span>
+      <button id="logoutBtn" type="button" class="btn-outline">Se déconnecter</button>
+      <a href="/" style="margin-left:auto">← Retour au site</a>
     </div>
   </header>
 
-  <main class="container" style="display:grid;gap:28px;margin-top:18px">
-
-    <!-- ------------ AJOUTER UN EBOOK ------------ -->
-    <section id="add" class="card">
+  <main class="container" style="display:grid;gap:22px">
+    <section class="card">
       <h2>Ajouter un ebook</h2>
-
       <form id="addForm" enctype="multipart/form-data">
-        <label for="title">Titre *</label>
-        <input type="text" name="title" id="title" required />
-
-        <label for="author">Auteur *</label>
-        <input type="text" name="author" id="author" required />
-
-        <label for="description">Description</label>
-        <textarea name="description" id="description" placeholder="Résumé, points forts…"></textarea>
-
-        <label for="language">Langue</label>
-        <select name="language" id="language">
-          <option value="Français">Français</option>
-          <option value="Anglais">Anglais</option>
-        </select>
-
-        <label for="price_cents">Prix (centimes)</label>
-        <input type="number" name="price_cents" id="price_cents" min="0" value="0" />
-
-        <label for="categories">Catégories (séparées par des virgules)</label>
-        <input type="text" name="categories" id="categories" placeholder="ex: business, entrepreneuriat" />
-
-        <label for="cover">Couverture (JPG/PNG)</label>
-        <input type="file" name="cover" id="cover" accept=".jpg,.jpeg,.png" />
-
-        <label for="pdf">Fichier PDF *</label>
-        <input type="file" name="pdf" id="pdf" accept=".pdf" required />
-
-        <div style="margin-top:12px">
-          <button type="submit">Enregistrer</button>
+        <label>Titre *</label><input name="title" required>
+        <label>Auteur *</label><input name="author" required>
+        <label>Description</label><textarea name="description"></textarea>
+        <div class="filters" style="margin:10px 0">
+          <select name="language">
+            <option value="Français" selected>Français</option>
+            <option value="Anglais">Anglais</option>
+          </select>
+          <input name="price_cents" type="number" min="0" value="0" placeholder="Prix (centimes)">
+          <input name="categories" placeholder="Catégories (séparées par des virgules)">
         </div>
+        <div class="filters" style="margin:10px 0">
+          <input type="file" name="cover" accept=".jpg,.jpeg,.png">
+          <input type="file" name="pdf" accept=".pdf" required>
+        </div>
+        <button type="submit">Enregistrer</button>
       </form>
     </section>
 
-    <!-- ------------ GERER LES EBOOKS ------------ -->
-    <section id="manage" class="card">
+    <section class="card">
       <h2>Gérer</h2>
-
-      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-        <input id="adminSearch" type="search" placeholder="Rechercher (titre, auteur, mots‑clés…)" />
+      <div class="filters" style="margin:8px 0">
+        <input id="adminSearch" type="search" placeholder="Rechercher (titre, auteur, mots-clés…)">
         <button id="refreshBtn" type="button">Rafraîchir</button>
       </div>
-
-      <div id="adminList" class="list"></div>
-
-      <nav style="display:flex;gap:8px;margin-top:12px">
-        <button id="prev" type="button" disabled>Précédent</button>
-        <button id="next" type="button" disabled>Suivant</button>
+      <div id="adminList">Chargement…</div>
+      <nav class="pager">
+        <button id="prev" disabled>Précédent</button>
+        <button id="next" disabled>Suivant</button>
       </nav>
     </section>
   </main>
 
   <script>
-  // --------- outils ----------
-  const $ = (sel, root=document) => root.querySelector(sel);
-  const list  = $('#adminList');
-  const pagerPrev = $('#prev');
-  const pagerNext = $('#next');
+    // utils
+    const $ = (s, r=document)=> r.querySelector(s);
+    function toast(m){ alert(m); }
 
-  function toast(msg) { alert(msg); }
-
-  // --------- session ----------
-  async function requireSession() {
-    try {
-      const r = await fetch('/api/me', { credentials: 'include' });
-      const data = await r.json();
-      if (!data.user) {
-        location.href = '/login.html';
-        return false;
-      }
-      $('#whoami').textContent = data.user;
-      return true;
-    } catch {
+    // session
+    async function checkSession(){
+      try{
+        const r = await fetch('/api/me', { credentials:'include' });
+        const j = await r.json();
+        if(!j.user){ location.href = '/login.html'; return false; }
+        $('#whoami').textContent = j.user;
+        return true;
+      }catch{ location.href = '/login.html'; return false; }
+    }
+    $('#logoutBtn').addEventListener('click', async ()=>{
+      try{ await fetch('/api/logout', { method:'POST', credentials:'include' }); }catch{}
       location.href = '/login.html';
-      return false;
-    }
-  }
+    });
 
-  $('#logoutBtn').addEventListener('click', async () => {
-    try {
-      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
-    } catch {}
-    location.href = '/login.html';
-  });
-
-  // --------- Ajout ----------
-  $('#addForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-
-    try {
-      const res = await fetch('/api/ebooks', {
-        method: 'POST',
-        body: fd,
-        credentials: 'include' // cookie de session
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok || data.ok === false) {
-        console.error('Ajout KO:', data);
+    // ajout
+    $('#addForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(e.currentTarget);
+      try{
+        const r = await fetch('/api/ebooks', { method:'POST', body:fd, credentials:'include' });
+        const j = await r.json().catch(()=> ({}));
+        if(!r.ok || j.ok !== true) throw new Error(j.error||'upload');
+        toast('Ebook ajouté !');
+        e.currentTarget.reset();
+        state.page = 1; // retour page 1
+        await loadAdmin();
+      }catch(err){
+        console.error(err);
         toast("Échec de l'envoi.");
-        return;
       }
+    });
 
-      toast('Ebook ajouté !');
-      e.currentTarget.reset();
-      // on repart en page 1 après ajout
-      state.page = 1;
-      await loadAdminEbooks();
-    } catch (err) {
-      console.error(err);
-      toast("Échec de l'envoi.");
+    // liste admin + pagination
+    const state = { page:1, pageSize:10, q:'' };
+    function readAdminQ(){ return ($('#adminSearch')?.value || '').trim(); }
+
+    async function loadAdmin(){
+      const params = new URLSearchParams({
+        page: String(state.page),
+        pageSize: String(state.pageSize),
+        q: readAdminQ()
+      });
+      const box = $('#adminList');
+      box.textContent = 'Chargement…';
+      try{
+        const r = await fetch('/api/ebooks?' + params.toString(), { credentials:'include' });
+        const data = await r.json();
+        const items = Array.isArray(data) ? data : (data.items || []);
+        renderAdmin(items);
+        $('#prev').disabled = (data.page || state.page) <= 1;
+        $('#next').disabled = !(data.hasNext || (data.pages ? (data.page < data.pages) : (items.length === state.pageSize)));
+      }catch(err){
+        console.error(err);
+        box.textContent = 'Erreur de chargement.';
+      }
     }
-  });
 
-  // --------- Liste / pagination admin ----------
-  const state = { page: 1, limit: 10, q: '' };
-
-  function readSearch() {
-    return { q: ($('#adminSearch')?.value || '').trim() };
-  }
-
-  async function loadAdminEbooks() {
-    const { page, limit } = state;
-    const { q } = readSearch();
-    const params = new URLSearchParams({ page, limit, q });
-    try {
-      const res = await fetch('/api/ebooks?' + params.toString(), { credentials: 'include' });
-      const data = await res.json();
-
-      renderAdminList(data);
-
-      pagerPrev.disabled = page <= 1 || data.length < 1;
-      // si moins que le “limit”, pas de page suivante
-      pagerNext.disabled = data.length < limit;
-    } catch (err) {
-      console.error(err);
-      list.innerHTML = '<p>Erreur de chargement.</p>';
-      pagerPrev.disabled = true;
-      pagerNext.disabled = true;
-    }
-  }
-
-  function renderAdminList(rows) {
-    if (!rows || rows.length === 0) {
-      list.innerHTML = '<p>Aucun livre pour l’instant.</p>';
-      return;
-    }
-    list.innerHTML = rows.map(e => `
-      <article class="item" style="display:grid;gap:6px;padding:10px;border:1px solid #ddd;border-radius:8px;margin-bottom:10px;background:rgba(255,255,255,.8)">
-        <div style="display:flex;gap:12px;align-items:flex-start">
-          ${e.cover_path ? `<img src="${e.cover_path}" alt="couverture" style="width:64px;height:96px;object-fit:cover;border-radius:4px" />` : ''}
+    function renderAdmin(rows){
+      const box = $('#adminList');
+      if(!rows || rows.length===0){ box.innerHTML = '<p>Aucun livre pour l’instant.</p>'; return; }
+      box.innerHTML = rows.map(e => `
+        <article class="item" style="display:flex;gap:12px;align-items:flex-start;border:1px solid #e5e7eb;border-radius:12px;padding:10px;background:rgba(255,255,255,.9);margin-bottom:10px">
+          ${e.cover_path ? `<img src="${e.cover_path}" alt="" style="width:64px;height:96px;object-fit:cover;border-radius:6px">` : ''}
           <div style="flex:1">
-            <h3 style="margin:0 0 4px 0">${e.title || ''}</h3>
-            <div style="opacity:.7">${e.author || ''}</div>
-            <div style="opacity:.7;font-size:.9em">${e.language || ''} — ${(e.categories || '')}</div>
+            <div style="font-weight:700">${e.title || ''}</div>
+            <div style="opacity:.75">${e.author || ''}</div>
+            <div style="opacity:.7;font-size:.9em">${e.language || ''} • ${e.categories || ''}</div>
             ${e.pdf_path ? `<div style="margin-top:6px"><a href="${e.pdf_path}" target="_blank" rel="noopener">Ouvrir le PDF</a></div>` : ''}
           </div>
           <div>
-            <button data-id="${e.id}" class="btn-delete" type="button">Supprimer</button>
+            <button class="btn-outline" data-del="${e.id}">Supprimer</button>
           </div>
-        </div>
-      </article>
-    `).join('');
+        </article>
+      `).join('');
 
-    // boutons supprimer
-    list.querySelectorAll('.btn-delete').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Supprimer cet ebook ?')) return;
-        const id = btn.getAttribute('data-id');
-        try {
-          const r = await fetch('/api/ebooks/' + id, { method: 'DELETE', credentials: 'include' });
-          const j = await r.json().catch(() => ({}));
-          if (!r.ok || j.ok === false) {
-            toast('Suppression échouée');
-            return;
-          }
-          toast('Supprimé');
-          await loadAdminEbooks();
-        } catch (e) {
-          console.error(e);
-          toast('Suppression échouée');
-        }
+      box.querySelectorAll('[data-del]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          if(!confirm('Supprimer cet ebook ?')) return;
+          const id = btn.getAttribute('data-del');
+          try{
+            const r = await fetch('/api/ebooks/' + id, { method:'DELETE', credentials:'include' });
+            const j = await r.json().catch(()=> ({}));
+            if(!r.ok || j.ok !== true){ toast('Suppression échouée'); return; }
+            toast('Supprimé');
+            await loadAdmin();
+          }catch{ toast('Suppression échouée'); }
+        });
       });
-    });
-  }
+    }
 
-  // événements
-  $('#adminSearch').addEventListener('input', () => {
-    state.page = 1;
-    state.q = readSearch().q;
-    loadAdminEbooks();
-  });
-  $('#refreshBtn').addEventListener('click', () => loadAdminEbooks());
-  pagerPrev.addEventListener('click', () => { if (state.page > 1) { state.page--; loadAdminEbooks(); }});
-  pagerNext.addEventListener('click', () => { state.page++; loadAdminEbooks(); });
+    // events
+    $('#adminSearch').addEventListener('input', ()=>{ state.page=1; loadAdmin(); });
+    $('#refreshBtn').addEventListener('click', ()=> loadAdmin());
+    $('#prev').addEventListener('click', ()=> { if(state.page>1){ state.page--; loadAdmin(); }});
+    $('#next').addEventListener('click', ()=> { state.page++; loadAdmin(); });
 
-  // --------- bootstrap page ----------
-  (async () => {
-    const ok = await requireSession();
-    if (!ok) return;
-    await loadAdminEbooks();
-  })();
+    (async ()=>{
+      if(await checkSession()) loadAdmin();
+    })();
   </script>
 </body>
 </html>
