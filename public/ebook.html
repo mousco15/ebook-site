@@ -1,55 +1,42 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Détail du livre</title>
-  <link rel="stylesheet" href="/custom.css">
-  <style>
-    .wrap { max-width: 980px; margin: 24px auto; background:#fff; padding: 16px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
-    .row { display:flex; gap: 16px; flex-wrap: wrap; }
-    .cover { width: 280px; height: 380px; object-fit: cover; border-radius: 10px; background:#f4f6f8; }
-    .meta h1 { margin:0 0 8px; }
-    iframe { width: 100%; height: 80vh; border: none; border-radius: 10px; background:#fafafa; }
-  </style>
+  <link rel="stylesheet" href="/custom.css?v=10">
+  <link rel="preload" as="image" href="/hero.jpg">
 </head>
 <body>
-  <div class="wrap">
-    <a href="/" style="text-decoration:none;">← Retour</a>
-    <div id="detail"></div>
-  </div>
+  <main class="container card">
+    <a href="/" style="text-decoration:none">← Retour</a>
+    <div id="detail" style="margin-top:12px">Chargement…</div>
+  </main>
 
   <script>
-    function qp(name) {
-      return new URLSearchParams(location.search).get(name);
-    }
+    const qp = new URLSearchParams(location.search);
+    const id = qp.get('id');
 
     async function load() {
-      const id = qp('id');
-      if (!id) { location.href = '/'; return; }
-
-      const res = await fetch(`/api/ebooks/${encodeURIComponent(id)}`);
-      if (!res.ok) { document.getElementById('detail').textContent = 'Livre introuvable.'; return; }
-      const e = await res.json();
-
+      if (!id) { document.getElementById('detail').textContent='Livre introuvable.'; return; }
+      const r = await fetch('/api/ebooks/' + encodeURIComponent(id));
+      if (!r.ok) { document.getElementById('detail').textContent='Livre introuvable.'; return; }
+      const e = await r.json();
       document.getElementById('detail').innerHTML = `
-        <div class="row">
-          <img class="cover" src="${e.cover_path || '/assets/placeholder-cover.svg'}" alt="">
-          <div class="meta">
-            <h1>${e.title || ''}</h1>
-            <div>Auteur : <strong>${e.author || ''}</strong></div>
-            <div>Langue : ${e.language || 'fr'}</div>
-            <div>Catégories : ${e.categories || '—'}</div>
-            <p style="margin-top:8px;">${e.description || ''}</p>
-            <p>
-              ${e.pdf_path ? `<a href="${e.pdf_path}" target="_blank" rel="noopener">Télécharger le PDF</a>` : ''}
-            </p>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          ${e.cover_path ? `<img src="${e.cover_path}" alt="" style="width:260px;height:360px;object-fit:cover;border-radius:12px">` : ''}
+          <div style="flex:1;min-width:260px">
+            <h2 style="margin:0 0 6px">${e.title || ''}</h2>
+            <div style="opacity:.8">${e.author || ''}</div>
+            <div style="opacity:.7;margin-top:6px">${e.language || ''} • ${e.categories || ''}</div>
+            ${e.description ? `<p style="margin-top:10px">${e.description}</p>` : ''}
+            ${e.pdf_path ? `<p style="margin-top:10px"><a class="btn" href="${e.pdf_path}" target="_blank" rel="noopener">Télécharger le PDF</a></p>` : ''}
           </div>
         </div>
-        ${e.pdf_path ? `<h3>Lecture en ligne</h3><iframe src="${e.pdf_path}#view=fitH"></iframe>` : ''}
+        ${e.pdf_path ? `<h3 style="margin-top:18px">Lecture en ligne</h3>
+        <iframe src="${e.pdf_path}#view=fitH" style="width:100%;height:80vh;border:none;border-radius:12px;background:#fafafa"></iframe>` : ''}
       `;
     }
-
     load();
   </script>
 </body>
