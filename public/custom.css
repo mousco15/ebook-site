@@ -115,3 +115,168 @@ body::before {
   background: rgba(0, 0, 0, 0.4); /* assombrissement + opacité */
   z-index: -1;
 }
+/* ====== POLISH PUBLIC + ADMIN (non destructif) ====== */
+
+/* 1) Conteneurs centrés */
+.container{
+  max-width: 1100px;      /* centre le contenu et évite l’effet “collé à gauche” */
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* 2) Barre de filtres (page publique) */
+.filters{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;        /* centre les champs */
+  margin-bottom: 16px;
+}
+.filters input[type="search"],
+.filters input[type="text"],
+.filters select{
+  width: min(100%, 280px);
+  padding: 10px 12px;
+  border: 1px solid rgba(0,0,0,.15);
+  border-radius: 10px;
+  background: rgba(255,255,255,.85);
+  backdrop-filter: blur(3px);
+}
+
+/* 3) Cartes “livres” (public + admin) */
+.card{
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 16px;
+  margin: 12px 0;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 16px;
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 6px 18px rgba(0,0,0,.07);
+}
+.card img.cover{
+  flex: 0 0 140px;        /* taille de la jaquette */
+  width: 140px;
+  height: 190px;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0,0,0,.1);
+}
+.card .info{
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.card h3{
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+.card .author{
+  margin: 0 0 10px;
+  color: #444;
+  font-weight: 600;
+}
+.card .desc{
+  color: #333;
+  line-height: 1.5;
+}
+
+/* Boutons */
+.btn{
+  display: inline-block;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.15);
+  background: white;
+  text-decoration: none;
+  font-weight: 600;
+}
+.btn:hover{ filter: brightness(0.97); }
+
+/* 4) Pagination (public) */
+.pager{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  margin: 14px 0 24px;
+}
+.pager button{
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.15);
+  background: rgba(255,255,255,.92);
+}
+
+/* 5) Header (public + admin) */
+header.container h1{
+  text-align: center;     /* titre bien centré */
+  margin-bottom: 6px;
+}
+header.container .subtitle{
+  text-align: center;
+  color: #333;
+}
+
+/* 6) Formulaire d’ajout (page admin) */
+#addForm{
+  display: grid;
+  grid-template-columns: 1fr 1fr;  /* 2 colonnes sur écran large */
+  gap: 12px;
+  padding: 16px;
+  margin: 10px 0 22px;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 16px;
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 6px 18px rgba(0,0,0,.07);
+}
+/* champs pleine largeur dans la grille */
+#addForm textarea,
+#addForm .actions,
+#addForm input[type="file"]{
+  grid-column: 1 / -1;
+}
+#addForm input,
+#addForm select,
+#addForm textarea{
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(0,0,0,.15);
+  border-radius: 10px;
+  background: rgba(255,255,255,.96);
+}
+#addForm button[type="submit"]{
+  justify-self: start;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.15);
+  background: #1971c2;    /* bleu discret */
+  color: #fff;
+  font-weight: 700;
+}
+
+/* 7) Liste d’ebooks (section “Gérer” admin) */
+.admin-list{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.admin-list .card{
+  align-items: center;
+}
+.admin-list .card .actions{
+  margin-left: auto;
+}
+.admin-list .card .actions .btn{
+  background: #fff;
+}
+
+/* 8) Responsive : 1 colonne sous 768px */
+@media (max-width: 768px){
+  #addForm{ grid-template-columns: 1fr; }
+  .card{
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .card img.cover{ margin-bottom: 8px; }
+}
