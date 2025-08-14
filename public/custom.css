@@ -91,3 +91,9 @@ body::before {
     opacity: 0.3; /* ajuste la transparence */
     z-index: -1;
 }
+.cover {
+  width: 150px;      /* Largeur fixe */
+  height: auto;      /* Conserve le ratio */
+  object-fit: cover; /* Coupe proprement si l'image est trop grande */
+  border-radius: 6px; /* Arrondir les coins (optionnel) */
+}
